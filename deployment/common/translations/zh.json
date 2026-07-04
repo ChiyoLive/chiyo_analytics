@@ -16,6 +16,8 @@
   "msg_extracted_cyanly_pyz": "已提取 cyanly.pyz 管理脚本",
   "warn_extract_cyanly_pyz_failed": "提取 cyanly.pyz 失败",
   "msg_config_copied": "配置文件已成功拷贝。",
+  "msg_recorded_install_dir": "已记录当前安装目录",
+  "warn_record_install_dir_failed": "警告：记录当前安装目录失败",
   "msg_syncing_geoip": "正在同步 GeoIP 数据库...",
   "msg_geoip_exists_skipping": "文件已存在，跳过下载",
   "warn_geoip_download_failed": "警告: 下载 GeoIP 数据库失败。后台更新程序将稍后重试。",
@@ -31,6 +33,9 @@
   "msg_removing_files": "正在删除安装文件...",
   "msg_uninstall_success": "卸载已完成。",
   "err_remove_failed": "删除目录失败",
+  "warn_install_pointer_invalid": "已记录的安装目录无效，正在回退",
+  "err_install_dir_not_found": "未找到有效的 cyanly 安装。已检查",
+  "msg_removed_install_pointer": "已删除当前安装指针。",
   "msg_starting_service": "正在启动服务...",
   "msg_restarting_service": "正在重启服务...",
   "msg_done": "完成。"

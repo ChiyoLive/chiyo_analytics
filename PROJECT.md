@@ -701,13 +701,14 @@ For production hosting on a single server, Chiyo Analytics provides a fully cont
    ```bash
    python3 install-cyanly.pyz install
    ```
-4. After installation, you can use the extracted `cyanly.pyz` script inside `~/.cyanly` (or your `--dest` folder) to manage the deployment:
-   - **Apply config changes / Recreate containers**: `python3 ~/.cyanly/cyanly.pyz up [service]`
+4. After installation, the installer records the absolute active installation directory in `~/.cyanly_installed`. You can use the extracted `cyanly.pyz` script from the installation directory to manage that active deployment:
+   - **Start or recreate services from the existing Compose file**: `python3 ~/.cyanly/cyanly.pyz up [service]`
    - **Restart containers**: `python3 ~/.cyanly/cyanly.pyz restart [service]`
    - **Uninstall and remove containers**: `python3 ~/.cyanly/cyanly.pyz uninstall`
    - **Uninstall with volumes (Destructive!)**: `python3 ~/.cyanly/cyanly.pyz uninstall --volume`
+   - Current implementation note: `install-cyanly.pyz install --dest <path>` writes the installation files to the requested path, starts Compose there, and updates `~/.cyanly_installed`. Use `<path>/cyanly.pyz` for that custom install. The management CLI reads the pointer first, falls back to `~/.cyanly` if the pointer is absent or invalid, and does not regenerate `.env` or `docker-compose.yaml` on `up`.
 
-For detailed setup instructions, Nginx/Caddy reverse proxy mapping examples, and management commands, please refer to the [Single Server Deployment Guide](./deployment/single_server_docker/README.md).
+For detailed setup instructions, Nginx/Caddy reverse proxy mapping examples, management commands, zipapp packaging build steps, and container topology, refer to the [Deployment Status & Design Guide](./deployment/PROJECT.md).
 
 #### ⚠️ Local Testing Notes (Single Server Docker)
 

@@ -44,9 +44,9 @@ python3 install-cyanly.pyz install
 ```
 
 ### Step 4: Maintenance & Commands
-After installation, you can manage the deployment using the extracted `cyanly.pyz` script inside `~/.cyanly` (or your customized destination folder):
+After installation, run the bundled management CLI from the installation directory. It operates on the active installation directory recorded in `~/.cyanly_installed` and falls back to `~/.cyanly` when that pointer is absent:
 
-- **Apply configuration changes**: `python3 ~/.cyanly/cyanly.pyz up`
+- **Start or recreate services from the existing Compose file**: `python3 ~/.cyanly/cyanly.pyz up`
 - **Restart all services**: `python3 ~/.cyanly/cyanly.pyz restart`
 - **Check service status**: `docker compose ps` (run in the deployment folder)
 - **Uninstall (stop and remove containers)**: `python3 ~/.cyanly/cyanly.pyz uninstall`

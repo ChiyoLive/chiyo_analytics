@@ -44,9 +44,9 @@ python3 install-cyanly.pyz install
 ```
 
 ### ステップ 4: 日常運用とメンテナンス
-インストール完了後は、`~/.cyanly` ディレクトリ（または指定したインストール先）に展開された管理スクリプト `cyanly.pyz` を使用してコンテナ群を管理できます：
+インストール完了後、インストールディレクトリから同梱の管理 CLI を実行してください。この CLI は `~/.cyanly_installed` に記録された有効なインストールディレクトリを操作し、そのポインターが存在しない場合は `~/.cyanly` にフォールバックします：
 
-- **設定の反映 / コンテナの再作成**：`python3 ~/.cyanly/cyanly.pyz up`
+- **既存の Compose ファイルからサービスを起動または再作成**：`python3 ~/.cyanly/cyanly.pyz up`
 - **全サービスの再起動**：`python3 ~/.cyanly/cyanly.pyz restart`
 - **稼働状態の確認**：デプロイ先フォルダで `docker compose ps` を実行
 - **アンインストール（コンテナの停止と削除）**：`python3 ~/.cyanly/cyanly.pyz uninstall`

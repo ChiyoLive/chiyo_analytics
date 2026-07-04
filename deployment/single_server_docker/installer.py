@@ -49,6 +49,8 @@ DEFAULT_GEOIP_URLS = GeoipURLs(
     ),
 )
 
+INSTALL_POINTER_PATH = Path.home() / ".cyanly_installed"
+
 
 def do_config():
     target_dir = Path("./cyanly-preinstall")
@@ -279,5 +281,17 @@ def do_install():
     except subprocess.CalledProcessError as e:
         console.print(f"\n[bold red]{t('err_cmd_failed')} {e.returncode}[/bold red]")
         sys.exit(1)
+
+    try:
+        INSTALL_POINTER_PATH.write_text(
+            str(install_dir.resolve()) + "\n", encoding="utf-8"
+        )
+        console.print(
+            f"[green]{t('msg_recorded_install_dir')}: {INSTALL_POINTER_PATH}[/green]"
+        )
+    except Exception as e:
+        console.print(
+            f"[yellow]{t('warn_record_install_dir_failed')}: {e}[/yellow]"
+        )
 
     console.print(f"\n[bold green]{t('msg_install_success')}[/bold green]")

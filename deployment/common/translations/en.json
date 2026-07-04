@@ -16,6 +16,8 @@
   "msg_extracted_cyanly_pyz": "Extracted cyanly.pyz management script",
   "warn_extract_cyanly_pyz_failed": "Failed to extract cyanly.pyz",
   "msg_config_copied": "Configuration files copied successfully.",
+  "msg_recorded_install_dir": "Recorded active installation directory",
+  "warn_record_install_dir_failed": "Warning: failed to record active installation directory",
   "msg_syncing_geoip": "Syncing GeoIP databases...",
   "msg_geoip_exists_skipping": "File already exists, skipping download",
   "warn_geoip_download_failed": "Warning: Failed to download GeoIP database. Background updater will retry later.",
@@ -31,6 +33,9 @@
   "msg_removing_files": "Removing installation files...",
   "msg_uninstall_success": "Uninstallation completed.",
   "err_remove_failed": "Failed to remove directory",
+  "warn_install_pointer_invalid": "Recorded installation directory is invalid, falling back",
+  "err_install_dir_not_found": "No valid cyanly installation found. Checked",
+  "msg_removed_install_pointer": "Removed active installation pointer.",
   "msg_starting_service": "Starting service(s)...",
   "msg_restarting_service": "Restarting service(s)...",
   "msg_done": "Done."

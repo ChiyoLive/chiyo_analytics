@@ -2,6 +2,12 @@
 # Project Overview
 You can obtain a summary of the current project status from `PROJECT.md` located under the project root.
 
+## Overview Documentation Structure
+The project contains multiple documentation files, each serving a distinct purpose:
+- `PROJECT.md`: The master status file for developers and AI Agents. Note: If discrepancies exist between this file and the actual codebase, the **actual code takes absolute precedence**.
+- `README.{lang}.md`: User-facing documentation that guides users on how to use the project.
+- `deployment/PROJECT.md`: Deployment-specific status file for developers and AI Agents. It details the deployment process for each target and explains the underlying design philosophy.
+
 # SQL Query Standards
 1. When writing SQL queries—whether for ClickHouse or PostgreSQL, always use fully qualified, semantically clear table formats such as `cyanly.events` or `public.users`. Never use ambiguous shorthand like `events` or `users`.
 

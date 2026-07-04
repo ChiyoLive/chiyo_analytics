@@ -16,6 +16,8 @@
   "msg_extracted_cyanly_pyz": "cyanly.pyz 管理スクリプトを抽出しました",
   "warn_extract_cyanly_pyz_failed": "cyanly.pyzの抽出に失敗しました",
   "msg_config_copied": "設定ファイルを正常にコピーしました。",
+  "msg_recorded_install_dir": "有効なインストールディレクトリを記録しました",
+  "warn_record_install_dir_failed": "警告: 有効なインストールディレクトリの記録に失敗しました",
   "msg_syncing_geoip": "GeoIPデータベースを同期中...",
   "msg_geoip_exists_skipping": "ファイルは既に存在します。ダウンロードをスキップします",
   "warn_geoip_download_failed": "警告: GeoIPデータベースのダウンロードに失敗しました。バックグラウンドアップデーターが後で再試行します。",
@@ -31,6 +33,9 @@
   "msg_removing_files": "インストールファイルを削除中...",
   "msg_uninstall_success": "アンインストールが完了しました。",
   "err_remove_failed": "ディレクトリの削除に失敗しました",
+  "warn_install_pointer_invalid": "記録されたインストールディレクトリが無効です。フォールバックします",
+  "err_install_dir_not_found": "有効な cyanly インストールが見つかりません。確認先",
+  "msg_removed_install_pointer": "有効なインストールポインターを削除しました。",
   "msg_starting_service": "サービスを開始中...",
   "msg_restarting_service": "サービスを再起動中...",
   "msg_done": "完了しました。"

@@ -8,10 +8,47 @@ from rich.prompt import Confirm
 
 console = Console()
 
+INSTALL_POINTER_PATH = Path.home() / ".cyanly_installed"
+DEFAULT_INSTALL_DIR = Path.home() / ".cyanly"
+
 
 def get_install_dir() -> Path:
-    # Assuming this script runs from ~/.cyanly or wherever it was dropped.
-    return Path.home() / ".cyanly"
+    if INSTALL_POINTER_PATH.exists():
+        try:
+            recorded_text = INSTALL_POINTER_PATH.read_text(encoding="utf-8").strip()
+            if not recorded_text:
+                raise ValueError("empty install pointer")
+            recorded = Path(recorded_text).expanduser()
+            if (recorded / "docker-compose.yaml").exists():
+                return recorded
+            console.print(
+                f"[yellow]{t('warn_install_pointer_invalid')}: {recorded}[/yellow]"
+            )
+        except Exception as e:
+            console.print(
+                f"[yellow]{t('warn_install_pointer_invalid')}: {e}[/yellow]"
+            )
+
+    if (DEFAULT_INSTALL_DIR / "docker-compose.yaml").exists():
+        return DEFAULT_INSTALL_DIR
+
+    console.print(
+        f"[bold red]{t('err_install_dir_not_found')}: {INSTALL_POINTER_PATH}, {DEFAULT_INSTALL_DIR}[/bold red]"
+    )
+    sys.exit(1)
+
+
+def clear_install_pointer(install_dir: Path):
+    if not INSTALL_POINTER_PATH.exists():
+        return
+
+    try:
+        recorded = Path(INSTALL_POINTER_PATH.read_text(encoding="utf-8").strip())
+        if recorded.expanduser().resolve() == install_dir.resolve():
+            INSTALL_POINTER_PATH.unlink()
+            console.print(f"[green]{t('msg_removed_install_pointer')}[/green]")
+    except Exception:
+        return
 
 
 def run_compose(args: list[str], cwd: Path):
@@ -87,6 +124,7 @@ def do_uninstall(with_volumes: bool = False):
     try:
         if install_dir.exists():
             shutil.rmtree(install_dir)
+            clear_install_pointer(install_dir)
             console.print(f"[green]{t('msg_uninstall_success')}[/green]")
     except Exception as e:
         console.print(f"[red]{t('err_remove_failed')} {install_dir}: {e}[/red]")

@@ -44,9 +44,9 @@ python3 install-cyanly.pyz install
 ```
 
 ### 第四步：日常运维与管理
-安装完成后，你可以使用保存在 `~/.cyanly` 目录（或你指定的安装目录）下的 `cyanly.pyz` 脚本来管理你的服务：
+安装完成后，请从安装目录运行内置的管理 CLI。它会操作记录在 `~/.cyanly_installed` 中的当前安装目录；如果该指针不存在，则回退到 `~/.cyanly`：
 
-- **热更配置 / 重启容器**：`python3 ~/.cyanly/cyanly.pyz up`
+- **根据现有 Compose 文件启动或重建服务**：`python3 ~/.cyanly/cyanly.pyz up`
 - **重启所有服务**：`python3 ~/.cyanly/cyanly.pyz restart`
 - **查看运行状态**：在部署目录下执行 `docker compose ps`
 - **停止并卸载容器**：`python3 ~/.cyanly/cyanly.pyz uninstall`
