@@ -860,7 +860,7 @@ The Go Query API serves endpoints for the dashboard and requires a valid JWT Bea
 
 ## 🤖 CI/CD Release Automation
 
-Chiyo Analytics uses **GitHub Actions** (configured with the latest Node 24 compatible actions like `actions/checkout@v7`) to automate the build and release cycle. When a git version tag is pushed (matching `v*` like `v1.0.0`), the workflow automatically handles publishing:
+Chiyo Analytics uses **GitHub Actions** (configured with the latest Node 24 compatible actions like `actions/checkout@v7`, `pnpm/action-setup@v6`, the latest Docker actions, and `softprops/action-gh-release@v3`) to automate the build and release cycle. When a git version tag is pushed (matching `v*` like `v1.0.0`), the workflow automatically handles publishing:
 
 1. **JS SDK to NPM**: Compiles `sdk_js` and publishes it to the NPM registry under the package name `cyanly_sdk`.
 2. **Docker Images to GHCR**: Builds and pushes multi-platform production Docker images (supporting both `linux/amd64` and `linux/arm64` architectures) to GitHub Container Registry:
