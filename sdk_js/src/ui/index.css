@@ -1,0 +1,411 @@
+/* Reset and Variables */
+#UI_BANNER_ROOT_ID,
+#UI_DIALOG_ROOT_ID {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  box-sizing: border-box;
+
+  /* Default theme: Dark Mode */
+  --cyanly-bg: rgba(15, 23, 42, 0.95);
+  --cyanly-border: rgba(255, 255, 255, 0.08);
+  --cyanly-text: #e2e8f0;
+  --cyanly-text-muted: #94a3b8;
+  --cyanly-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  --cyanly-btn-sec-bg: rgba(255, 255, 255, 0.06);
+  --cyanly-btn-sec-border: rgba(255, 255, 255, 0.12);
+  --cyanly-btn-sec-text: #cbd5e1;
+  --cyanly-btn-sec-hover-bg: rgba(255, 255, 255, 0.12);
+  --cyanly-slider-bg: rgba(255, 255, 255, 0.16);
+  --cyanly-slider-thumb: #cbd5e1;
+}
+
+#UI_BANNER_ROOT_ID.UI_CLS_THEME_LIGHT,
+#UI_DIALOG_ROOT_ID.UI_CLS_THEME_LIGHT {
+  /* Light Mode theme override */
+  --cyanly-bg: rgba(255, 255, 255, 0.96);
+  --cyanly-border: rgba(15, 23, 42, 0.08);
+  --cyanly-text: #1e293b;
+  --cyanly-text-muted: #475569;
+  --cyanly-shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
+  --cyanly-btn-sec-bg: rgba(15, 23, 42, 0.04);
+  --cyanly-btn-sec-border: rgba(15, 23, 42, 0.1);
+  --cyanly-btn-sec-text: #475569;
+  --cyanly-btn-sec-hover-bg: rgba(15, 23, 42, 0.08);
+  --cyanly-slider-bg: rgba(15, 23, 42, 0.08);
+  --cyanly-slider-thumb: #475569;
+}
+
+#UI_BANNER_ROOT_ID *,
+#UI_DIALOG_ROOT_ID * {
+  box-sizing: inherit;
+}
+
+/* Animations */
+@keyframes cyanly-slide-up {
+  from {
+    transform: translate(-50%, 40px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes cyanly-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cyanly-scale-up {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Banner Styling */
+.UI_CLS_BANNER_CONTAINER {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  max-width: calc(100vw - 32px);
+  background: var(--cyanly-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--cyanly-border);
+  border-radius: 16px;
+  box-shadow: var(--cyanly-shadow);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  z-index: 99999;
+  animation: cyanly-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .UI_CLS_BANNER_CONTAINER {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 20px;
+    bottom: 16px;
+  }
+}
+
+.UI_CLS_BANNER_CONTENT p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--cyanly-text);
+  transition: color 0.3s ease;
+}
+
+.UI_CLS_BANNER_ACTIONS {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .UI_CLS_BANNER_ACTIONS {
+    justify-content: flex-end;
+  }
+}
+
+/* Premium Buttons */
+.UI_CLS_BTN_PRIMARY,
+.UI_CLS_BTN_SECONDARY,
+.UI_CLS_BTN_DANGER {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.UI_CLS_BTN_PRIMARY {
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+}
+
+.UI_CLS_BTN_PRIMARY:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4);
+  background: linear-gradient(135deg, #0f766e, #115e59);
+}
+
+.UI_CLS_BTN_PRIMARY:active {
+  transform: translateY(0);
+}
+
+.UI_CLS_BTN_SECONDARY {
+  background: var(--cyanly-btn-sec-bg);
+  border: 1px solid var(--cyanly-btn-sec-border);
+  color: var(--cyanly-btn-sec-text);
+  transition:
+    background 0.3s,
+    border-color 0.3s,
+    color 0.3s;
+}
+
+.UI_CLS_BTN_SECONDARY:hover {
+  background: var(--cyanly-btn-sec-hover-bg);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--cyanly-text);
+}
+
+.UI_CLS_BTN_DANGER {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+.UI_CLS_BTN_DANGER:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+/* Dialog Overlay & Container */
+.UI_CLS_DIALOG_OVERLAY {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000;
+  animation: cyanly-fade-in 0.3s ease forwards;
+}
+
+.UI_CLS_DIALOG_CONTAINER {
+  width: 460px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  background: var(--cyanly-bg);
+  border: 1px solid var(--cyanly-border);
+  border-radius: 20px;
+  box-shadow: var(--cyanly-shadow);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  animation: cyanly-scale-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.UI_CLS_DIALOG_HEADER {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--cyanly-border);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+  transition: border-color 0.3s ease;
+}
+
+.UI_CLS_DIALOG_HEADER h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--cyanly-text);
+  transition: color 0.3s ease;
+}
+
+.UI_CLS_BTN_CLOSE_ICON {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: var(--cyanly-text-muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.UI_CLS_BTN_CLOSE_ICON:hover {
+  color: var(--cyanly-text);
+}
+
+.UI_CLS_DIALOG_BODY {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  padding-right: 6px;
+  margin-bottom: 20px;
+}
+
+/* Premium thin scrollbar for dialog body */
+.UI_CLS_DIALOG_BODY::-webkit-scrollbar {
+  width: 6px;
+}
+.UI_CLS_DIALOG_BODY::-webkit-scrollbar-track {
+  background: transparent;
+}
+.UI_CLS_DIALOG_BODY::-webkit-scrollbar-thumb {
+  background: var(--cyanly-border);
+  border-radius: 3px;
+}
+.UI_CLS_DIALOG_BODY::-webkit-scrollbar-thumb:hover {
+  background: var(--cyanly-text-muted);
+}
+
+.UI_CLS_DIALOG_BODY p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--cyanly-text-muted);
+  transition: color 0.3s ease;
+}
+
+.UI_CLS_DIALOG_FOOTER {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cyanly-border);
+  transition: border-color 0.3s ease;
+}
+
+/* Dialog body description */
+.cyanly-dialog-desc {
+  margin-bottom: 16px !important;
+}
+
+/* Cookie Option Card */
+.UI_CLS_COOKIE_OPTION {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--cyanly-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease;
+}
+
+#UI_DIALOG_ROOT_ID.UI_CLS_THEME_LIGHT .UI_CLS_COOKIE_OPTION {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+.UI_CLS_COOKIE_OPTION_HEADER {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.cyanly-cookie-option-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cyanly-text);
+  transition: color 0.3s ease;
+}
+
+.UI_CLS_COOKIE_OPTION_DESC {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  color: var(--cyanly-text-muted) !important;
+  margin: 0 !important;
+}
+
+/* Switch Toggle Container */
+.UI_CLS_SWITCH {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 20px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+/* Hide default HTML checkbox */
+.UI_CLS_SWITCH input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.UI_CLS_SLIDER {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--cyanly-slider-bg);
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--cyanly-border);
+}
+
+.UI_CLS_SLIDER:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--cyanly-slider-thumb);
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+input:checked + .UI_CLS_SLIDER {
+  background-color: #0d9488; /* Teal theme color */
+  border-color: rgba(13, 148, 136, 0.4);
+}
+
+input:checked + .UI_CLS_SLIDER:before {
+  transform: translateX(18px);
+  background-color: #ffffff;
+}
+
+/* Disabled Switch (Required Group) */
+input:disabled + .UI_CLS_SLIDER {
+  background-color: var(--cyanly-slider-bg);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input:disabled + .UI_CLS_SLIDER:before {
+  background-color: var(--cyanly-text-muted);
+}
+
+/* Rounded sliders */
+.UI_CLS_SLIDER.UI_CLS_ROUND {
+  border-radius: 20px;
+}
+
+.UI_CLS_SLIDER.UI_CLS_ROUND:before {
+  border-radius: 50%;
+}

@@ -1,0 +1,38 @@
+# Reference Caddy configuration for Cyanly Analytics production deployments.
+# Place this in your /etc/caddy/Caddyfile.
+
+analytics.yourdomain.com {
+    # 1. Global Request Body Limits (Max 10KB for collect, 50KB for API queries)
+    request_body_limit /collect 10k
+    request_body_limit /api/v1/tokens 5k
+    request_body_limit /api/v1/analytics/* 50k
+
+    # 2. Proxy to Go Collector Ingestion
+    handle /collect {
+        reverse_proxy 127.0.0.1:8080 {
+            # Pass real client IP headers automatically handled by Caddy
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # 3. Proxy to Ticket Token Issuing Endpoint
+    handle /api/v1/tokens {
+        # Optional IP whitelist to restrict token requests to internal application servers
+        # @internal_ips {
+        #     not remote_ip 10.0.0.0/8 192.168.0.0/16
+        # }
+        # respond @internal_ips "Forbidden" 403
+
+        reverse_proxy 127.0.0.1:8080
+    }
+
+    # 4. Proxy to Query API Server
+    handle /api/v1/analytics/* {
+        reverse_proxy 127.0.0.1:8081
+    }
+
+    # Fallback to deny all other requests
+    handle {
+        respond "Not Found" 404
+    }
+}

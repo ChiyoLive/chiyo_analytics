@@ -1,0 +1,18 @@
+[project]
+name = "cyanly-installer"
+version = "1.0.0"
+dependencies = [
+    "rich>=15.0.0",
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["install-cyanly", "cyanly"]
+packages = ["single_server_docker", "common"]
+
+[tool.setuptools.package-data]
+single_server_docker = ["chiyo_analytics.toml", "docker-compose.yaml", "cyanly.pyz"]
+common = ["translations/*.json"]

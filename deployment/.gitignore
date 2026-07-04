@@ -1,0 +1,6 @@
+/install-cyanly.pyz
+**.egg-info
+
+/common/geoip_mng.py
+/cyanly-preinstall
+/single_server_docker/cyanly.pyz

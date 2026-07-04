@@ -1,0 +1,48 @@
+<div class="UI_CLS_DIALOG_OVERLAY">
+  <div class="UI_CLS_DIALOG_CONTAINER">
+    <div class="UI_CLS_DIALOG_HEADER">
+      <h3>{{dialog_title}}</h3>
+      <button id="UI_DIALOG_BTN_CLOSE_ID" class="UI_CLS_BTN_CLOSE_ICON">&times;</button>
+    </div>
+    <div class="UI_CLS_DIALOG_BODY">
+      <p class="cyanly-dialog-desc">{{dialog_text}}</p>
+      
+      <div class="UI_CLS_COOKIE_OPTION">
+        <div class="UI_CLS_COOKIE_OPTION_HEADER">
+          <label class="UI_CLS_SWITCH">
+            <input type="checkbox" checked disabled />
+            <span class="UI_CLS_SLIDER UI_CLS_ROUND"></span>
+          </label>
+          <span class="cyanly-cookie-option-title">{{required_title}}</span>
+        </div>
+        <p class="UI_CLS_COOKIE_OPTION_DESC">{{required_desc}}</p>
+      </div>
+      
+      <div class="UI_CLS_COOKIE_OPTION">
+        <div class="UI_CLS_COOKIE_OPTION_HEADER">
+          <label class="UI_CLS_SWITCH">
+            <input type="checkbox" id="UI_DIALOG_CB_FUNCTIONAL_ID" checked />
+            <span class="UI_CLS_SLIDER UI_CLS_ROUND"></span>
+          </label>
+          <span class="cyanly-cookie-option-title">{{functional_title}}</span>
+        </div>
+        <p class="UI_CLS_COOKIE_OPTION_DESC">{{functional_desc}}</p>
+      </div>
+      
+      <div class="UI_CLS_COOKIE_OPTION">
+        <div class="UI_CLS_COOKIE_OPTION_HEADER">
+          <label class="UI_CLS_SWITCH">
+            <input type="checkbox" id="UI_DIALOG_CB_PERSONALIZATION_ID" checked />
+            <span class="UI_CLS_SLIDER UI_CLS_ROUND"></span>
+          </label>
+          <span class="cyanly-cookie-option-title">{{personalization_title}}</span>
+        </div>
+        <p class="UI_CLS_COOKIE_OPTION_DESC">{{personalization_desc}}</p>
+      </div>
+    </div>
+    <div class="UI_CLS_DIALOG_FOOTER">
+      <button id="UI_DIALOG_BTN_DECLINE_ID" class="UI_CLS_BTN_DANGER">{{accept_required}}</button>
+      <button id="UI_DIALOG_BTN_ACCEPT_ID" class="UI_CLS_BTN_PRIMARY">{{save_settings}}</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,31 @@
+# =========================================================================
+# Cyanly (Chiyo Analytics) Docker Build Ignore
+# =========================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python Virtual Environment
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Node.js node_modules and builds
+**/node_modules
+**/.next
+**/dist
+**/.env.local
+**/pnpm-lock.yaml
+
+# Local GeoIP Databases (MMDBs are large, prevent massive context transfer)
+*.mmdb
+*.csv
+
+# Logs & temp files
+logs/
+.DS_Store
+.gemini/

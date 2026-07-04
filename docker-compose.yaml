@@ -1,0 +1,47 @@
+services:
+  clickhouse:
+    image: clickhouse:lts
+    container_name: cyanly-clickhouse
+    ports:
+      - "8123:8123" # HTTP API
+      - "9000:9000" # Native TCP Client
+    environment:
+      - CLICKHOUSE_DB=cyanly
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=cyanly-password
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    volumes:
+      - cyanly-clickhouse-data:/var/lib/clickhouse
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    restart: always
+
+  redis:
+    image: redis:8
+    container_name: cyanly-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - cyanly-redis-data:/data
+    restart: always
+
+  postgres:
+    image: postgres:18
+    container_name: cyanly-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=cyanly
+      - POSTGRES_USER=cyanly
+      - POSTGRES_PASSWORD=cyanly-password
+    volumes:
+      - cyanly-postgres-data:/var/lib/postgresql
+    restart: always
+
+volumes:
+  cyanly-clickhouse-data:
+  cyanly-redis-data:
+  cyanly-postgres-data:

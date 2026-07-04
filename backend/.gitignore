@@ -1,0 +1,7 @@
+/api
+/cy_migrate
+/collector
+/worker
+/updater
+
+/cmd/collector/sdk

@@ -1,0 +1,14 @@
+node_modules/
+**.tmp**
+dist/
+build/
+__pycache__/
+logs/
+.venv/
+.claude/
+.DS_Store
+
+/origin-asn.mmdb
+/dbip-city-ipv4.mmdb
+/dbip-city-ipv6.mmdb
+/geoip_asn.csv

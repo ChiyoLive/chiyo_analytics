@@ -1,0 +1,84 @@
+[app]
+env = "development"
+
+[collector]
+addr = ":8080"
+init_allowed_sites = [
+  { site_id = "example-next-js", jwks = "http://localhost:13001/api/cyanly-jwks" },
+  { site_id = "example-vite-react-router", jwks = "http://localhost:23002/api/cyanly-jwks" },
+  { site_id = "example-traditional-mpa", jwks = "http://localhost:13003/api/cyanly-jwks" },
+  { site_id = "test-site-id", jwks = "http://localhost:13003/api/cyanly-jwks" },
+  { site_id = "test-no-token-site", jwks = "" }
+]
+cors_allowed_origins = [
+  "http://localhost:13001",
+  "http://localhost:13002",
+  "http://localhost:13003"
+]
+trusted_proxies = [
+  "127.0.0.1",
+  "::1"
+]
+serve_sdk = true
+
+[api]
+addr = ":8081"
+jwt_secret = "cyanly-jwt-secret-key-change-in-prod"
+access_token_expiry = "120s"
+refresh_token_expiry = "180s"
+trusted_proxies = [
+  "127.0.0.1",
+  "::1"
+]
+cors_allowed_origins = [
+  "http://localhost:8079"
+]
+
+[api.superuser]
+username = "admin"
+nickname = "Administrator"
+email = "admin@cyanly.local"
+password = "cyanly-admin-secure-password"
+
+[worker]
+health_addr = ":8082"
+
+[dashboard]
+analytics_api_url = "http://localhost:8081"
+
+[redis]
+addr = "localhost:6379"
+password = ""
+db = 0
+key = "cyanly:events"
+
+[clickhouse]
+addr = "localhost:9000"
+database = "cyanly"
+username = "default"
+password = "cyanly-password"
+table = "cyanly.events"
+
+[geoip]
+db_ipv4 = "../dbip-city-ipv4.mmdb"
+db_ipv6 = "../dbip-city-ipv6.mmdb"
+db_asn = "../origin-asn.mmdb"
+
+[updater.geoip.db_ipv4]
+name = "dbip-city-ipv4.mmdb"
+url = "https://github.com/sapics/ip-location-db/releases/download/latest/dbip-city-ipv4.mmdb"
+
+[updater.geoip.db_ipv6]
+name = "dbip-city-ipv6.mmdb"
+url = "https://github.com/sapics/ip-location-db/releases/download/latest/dbip-city-ipv6.mmdb"
+
+[updater.geoip.db_asn]
+name = "origin-asn.mmdb"
+url = "https://github.com/sapics/ip-location-db/releases/download/latest/origin-asn.mmdb"
+
+[postgres]
+addr = "localhost:5432"
+database = "cyanly"
+username = "cyanly"
+password = "cyanly-password"
+sslmode = "disable"

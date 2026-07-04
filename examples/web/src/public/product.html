@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Product Details | Chiyo Store</title>
+    <link rel="stylesheet" href="index.css" />
+    <!-- Load products data first -->
+    <script src="products.js"></script>
+    <!-- Load the Chiyo JS SDK (MPA variant) -->
+    <script
+      src="sdk.js"
+      data-collector-url="http://localhost:8080/collect"
+      data-geo-lookup-url="http://localhost:8080/collect/geo"
+      data-site-id="example-traditional-mpa"
+      data-token-url="/api/cyanly-token"
+      data-show-privacy-consent-banner="true"
+    ></script>
+    <!-- Load the shared main helper -->
+    <script src="main.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get("id");
+        const container = document.getElementById("detail-content");
+
+        const product = window.mockProducts.find((p) => p.id === id);
+        if (!product) {
+          if (container) {
+            container.innerHTML = `
+              <div style="text-align: center; padding: 4rem 0;">
+                <h2 style="font-size: 2rem; margin-bottom: 1rem;">Product Not Found</h2>
+                <a href="products.html" class="back-link">&larr; Back to catalog</a>
+              </div>
+            `;
+          }
+          return;
+        }
+
+        // Set page title so that SDK reports correct metadata
+        document.title = `${product.name} | Chiyo Store`;
+
+        if (container) {
+          container.innerHTML = `
+            <a href="products.html" class="back-link">&larr; Back to catalog</a>
+            <div class="detail-grid">
+              <!-- Product Preview Panel -->
+              <div class="detail-image" style="background: ${product.imageUrl}"></div>
+
+              <!-- Specs & Buy Panel -->
+              <div class="detail-info">
+                <div class="detail-title-section">
+                  <div>
+                    <span class="rating-badge">★ ${product.rating} (${product.reviewsCount} reviews)</span>
+                  </div>
+                  <h1 class="detail-title">${product.name}</h1>
+                  <p class="detail-price">$${product.price}</p>
+                </div>
+
+                <p style="font-size: 0.875rem; line-height: 1.6; color: var(--text-muted);">
+                  ${product.description}
+                </p>
+
+                <!-- Specs List -->
+                <div class="detail-specs">
+                  <h3 class="specs-title">Technical Specifications</h3>
+                  <ul class="spec-list">
+                    ${product.specs
+                      .map(
+                        (spec) => `
+                        <li class="spec-item">
+                            <span class="spec-dot"></span>
+                            ${spec}
+                        </li>
+                    `,
+                      )
+                      .join("")}
+                  </ul>
+                </div>
+
+                <!-- Action button -->
+                <div style="padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                  <button class="add-to-cart-btn" data-cyanly-event="add_to_cart" data-cyanly-prop-product-id="${product.id}" data-cyanly-prop-product-name="${product.name}" data-cyanly-prop-price="${product.price}::<number>">Add to cart</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-container">
+          <a href="index.html" class="logo-link">
+            <span class="logo-badge">千</span>
+            <span>Chiyo Store</span>
+          </a>
+          <div style="display: flex; gap: 1rem; align-items: center">
+            <nav class="nav-links">
+              <a href="index.html" class="nav-link">Home</a>
+              <a href="products.html" class="nav-link">Products</a>
+            </nav>
+            <button
+              id="theme-toggle"
+              class="theme-toggle"
+              aria-label="Toggle theme"
+            >
+              ☀️
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <div id="detail-content" class="detail-container">
+          <!-- Injected dynamically -->
+        </div>
+      </main>
+
+      <!-- Real-time Ingestion Stream Console -->
+      <div id="live-console" class="live-console">
+        <!-- Toggle bar -->
+        <div id="console-header" class="console-header">
+          <div class="console-status">
+            <span class="status-indicator"></span>
+            <span class="console-title">Chiyo Ingest Live Console</span>
+            <span class="site-badge">Site ID: example-traditional-mpa</span>
+          </div>
+          <div class="console-meta">
+            <span id="console-count" class="console-count"
+              >0 pageview events captured</span
+            >
+            <button id="console-toggle-btn" class="console-toggle-btn">
+              Collapse ▾
+            </button>
+          </div>
+        </div>
+
+        <!-- Logs content -->
+        <div class="console-logs">
+          <div id="console-empty" class="console-empty">
+            <span class="console-empty-icon">⚡️</span>
+            <p>
+              No analytics events logged yet. Navigate to other pages or refresh
+              to generate events!
+            </p>
+            <p class="console-empty-sub">
+              (Remember: stays lasting &lt; 1 sec are filtered out to prevent
+              noise)
+            </p>
+          </div>
+          <div id="log-list" class="log-list" style="display: none">
+            <!-- Appended dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

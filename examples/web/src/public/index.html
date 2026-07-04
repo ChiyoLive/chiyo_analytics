@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home | Chiyo Store</title>
+    <link rel="stylesheet" href="index.css" />
+    <link rel="stylesheet" href="cyanly.css" />
+    <!-- Load the Chiyo Analytics JS SDK (MPA variant) -->
+    <script
+      src="sdk.js"
+      data-collector-url="http://localhost:8080/collect"
+      data-geo-lookup-url="http://localhost:8080/collect/geo"
+      data-site-id="example-traditional-mpa"
+      data-token-url="/api/cyanly-token"
+      data-reporter-ignore-ms="1000"
+      data-show-privacy-consent-banner="true"
+    ></script>
+    <!-- Load the shared main helper -->
+    <script src="main.js"></script>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-container">
+          <a href="index.html" class="logo-link">
+            <span class="logo-badge">千</span>
+            <span>Chiyo Store</span>
+          </a>
+          <div style="display: flex; gap: 1rem; align-items: center">
+            <nav class="nav-links">
+              <a href="index.html" class="nav-link active">Home</a>
+              <a href="products.html" class="nav-link">Products</a>
+            </nav>
+            <button
+              id="theme-toggle"
+              class="theme-toggle"
+              aria-label="Toggle theme"
+            >
+              ☀️
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <div style="display: flex; flex-direction: column; gap: 4rem">
+          <!-- Hero Section -->
+          <section class="hero-section">
+            <h1 class="hero-title">Next-Gen MPA Analytics Example</h1>
+            <p class="hero-description">
+              Welcome to the <strong>Chiyo Gadget Store</strong>. This is a
+              real-world multi-page application utilizing
+              <strong>traditional web technologies</strong>
+              (standard HTML, vanilla JS, and Express) to showcase our
+              lightweight client-side analytics SDK.
+            </p>
+
+            <!-- Live Stay Counter -->
+            <div class="timer-badge">
+              <span class="timer-pulse"></span>
+              <span id="timer-badge-text"
+                >You have been on this page for:
+                <strong style="font-size: 1.1rem; margin-left: 0.25rem"
+                  >0s</strong
+                ></span
+              >
+            </div>
+
+            <div style="padding-top: 1rem">
+              <a href="products.html" class="cta-button"
+                >Explore catalog &rarr;</a
+              >
+            </div>
+          </section>
+
+          <!-- Feature Grid -->
+          <section class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-icon">⏱️</div>
+              <h3 class="feature-title">Duration Tracking</h3>
+              <p class="feature-desc">
+                The SDK tracks active stay duration accurately. If you spend
+                less than 1 second on a page, it is ignored to keep metrics
+                clean.
+              </p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon">🧭</div>
+              <h3 class="feature-title">Multi-Page Routing (MPA)</h3>
+              <p class="feature-desc">
+                Unlike SPAs, routing here uses native browser page reloads. The
+                SDK automatically detects page load and reports stay durations
+                when navigating away.
+              </p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon">🗃️</div>
+              <h3 class="feature-title">Session Durability</h3>
+              <p class="feature-desc">
+                Visitor and Session identifiers are automatically stored inside
+                `localStorage` and `sessionStorage` to trace persistent
+                journeys.
+              </p>
+            </div>
+          </section>
+
+          <!-- Integration Guide Section -->
+          <section class="info-section">
+            <h2 class="info-title">How it works</h2>
+            <p class="info-text">
+              When loading any HTML page, the SDK script is injected in the
+              header. It automatically reads site parameters and starts the
+              session tracker:
+            </p>
+            <pre class="code-block">
+&lt;script src="sdk.js"
+        data-collector-url="http://localhost:8080/collect"
+        data-geo-lookup-url="http://localhost:8080/collect/geo"
+        data-site-id="example-traditional-mpa"
+        data-token-url="/api/cyanly-token"&gt;&lt;/script&gt;</pre
+            >
+            <p class="info-text" style="margin-top: 1rem; margin-bottom: 0">
+              This sends pageview duration beacons and UTM parameters when you
+              navigate away or close the tab. You can inspect the Live Ingest
+              Console below to see events recorded across pages!
+            </p>
+          </section>
+        </div>
+      </main>
+
+      <!-- Real-time Ingestion Stream Console -->
+      <div id="live-console" class="live-console">
+        <!-- Toggle bar -->
+        <div id="console-header" class="console-header">
+          <div class="console-status">
+            <span class="status-indicator"></span>
+            <span class="console-title">Chiyo Ingest Live Console</span>
+            <span class="site-badge">Site ID: example-traditional-mpa</span>
+          </div>
+          <div class="console-meta">
+            <span id="console-count" class="console-count"
+              >0 pageview events captured</span
+            >
+            <button id="console-toggle-btn" class="console-toggle-btn">
+              Collapse ▾
+            </button>
+          </div>
+        </div>
+
+        <!-- Logs content -->
+        <div class="console-logs">
+          <div id="console-empty" class="console-empty">
+            <span class="console-empty-icon">⚡️</span>
+            <p>
+              No analytics events logged yet. Navigate to other pages or refresh
+              to generate events!
+            </p>
+            <p class="console-empty-sub">
+              (Remember: stays lasting &lt; 1 sec are filtered out to prevent
+              noise)
+            </p>
+          </div>
+          <div id="log-list" class="log-list" style="display: none">
+            <!-- Appended dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

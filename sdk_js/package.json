@@ -1,0 +1,54 @@
+{
+  "name": "cyanly_sdk",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./spa": {
+      "types": "./dist/spa.d.ts",
+      "import": "./dist/spa.js"
+    },
+    "./mpa": {
+      "import": "./dist/mpa.iife.js"
+    },
+    "./ui/index.css": {
+      "import": "./dist/ui/index.css"
+    }
+  },
+  "scripts": {
+    "tsx": "tsx",
+    "lint": "eslint",
+    "dev:ui:vanilla": "vite serve ui-dev/vanilla",
+    "dev:ui:react": "vite serve ui-dev/react",
+    "build": "tsdown --config-loader unrun",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "nanoid": "^5.1.11"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/clean-css": "^4.2.11",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/html-minifier-terser": "^7.0.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "chokidar": "^5.0.0",
+    "clean-css": "^5.3.3",
+    "eslint": "^10.4.1",
+    "html-minifier-terser": "^7.2.0",
+    "jiti": "^2.7.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tsdown": "^0.22.2",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.1",
+    "unrun": "^0.3.1",
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9"
+  },
+  "packageManager": "pnpm@11.9.0+sha512.bd682d5d03fe525ef7c9fd6780c6884d1e756ac4c9c9fe00c538782824310dcf90e3ddc4f53835f06dfaebd5085e41855e0bcbb3b60de2ac5bbab89e5036f03b"
+}

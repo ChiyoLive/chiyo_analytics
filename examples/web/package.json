@@ -1,0 +1,22 @@
+{
+  "name": "chiyo-analytics-example-web",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsdown",
+    "start": "node dist/server.mjs",
+    "dev": "tsdown && node dist/server.mjs"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cyanly_sdk": "link:../../sdk_js"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.30",
+    "tsdown": "^0.22.2",
+    "typescript": "^5.4.3",
+    "unrun": "^0.3.1"
+  }
+}
