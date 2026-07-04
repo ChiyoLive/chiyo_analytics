@@ -6,34 +6,30 @@ requires-python = ">=3.13"
 name = "chiyo-analytics"
 version = "0.1.0"
 source = { virtual = "." }
-dependencies = [
-    { name = "fire" },
-    { name = "maxminddb" },
-    { name = "psutil" },
-    { name = "questionary" },
-    { name = "rich" },
-    { name = "shiv" },
-]
 
 [package.dev-dependencies]
 dev = [
+    { name = "fire" },
+    { name = "maxminddb" },
+    { name = "psutil" },
     { name = "pytest" },
+    { name = "questionary" },
+    { name = "rich" },
+    { name = "shiv" },
     { name = "syrupy" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "fire", specifier = ">=0.7.1" },
-    { name = "maxminddb", specifier = ">=3.1.1" },
-    { name = "psutil", specifier = ">=7.2.2" },
-    { name = "questionary", specifier = ">=2.1.1" },
-    { name = "rich", specifier = ">=15.0.0" },
-    { name = "shiv", specifier = ">=1.0.8" },
-]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "fire", specifier = ">=0.7.1" },
+    { name = "maxminddb", specifier = ">=3.1.1" },
+    { name = "psutil", specifier = ">=7.2.2" },
     { name = "pytest", specifier = ">=9.1.1" },
+    { name = "questionary", specifier = ">=2.1.1" },
+    { name = "rich", specifier = ">=15.0.0" },
+    { name = "shiv", specifier = ">=1.0.8" },
     { name = "syrupy", specifier = ">=5.4.0" },
 ]
 
