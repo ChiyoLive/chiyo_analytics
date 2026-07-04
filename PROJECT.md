@@ -579,9 +579,19 @@ You can execute various test suites using the `test` subcommands:
   ```
 
 - **All Unit Tests**:
-  Sequentially runs both JS SDK unit tests and Go backend unit tests:
+  Sequentially runs JS SDK unit tests, Go backend unit tests, and deployment installer tests:
   ```bash
   uv run python mng.py test unit
+  ```
+
+- **Deployment Installer Tests**:
+  Runs the Python tests for deployment installer file generation, overwrite handling, install directory pointer behavior, and syrupy snapshots:
+  ```bash
+  uv run python mng.py test deployment
+  ```
+  Update the deployment snapshots after intentional installer output changes with:
+  ```bash
+  uv run pytest deployment/tests --snapshot-update
   ```
 
 - **E2E Integration Tests**:
@@ -591,7 +601,7 @@ You can execute various test suites using the `test` subcommands:
   ```
 
 - **All Tests (Unit + E2E)**:
-  Runs all unit tests (JS SDK + Go backend unit tests) followed by the complete E2E integration test suite:
+  Runs all unit tests (JS SDK + Go backend + deployment installer tests) followed by the complete E2E integration test suite:
   ```bash
   uv run python mng.py test all
   ```
@@ -697,16 +707,24 @@ For production hosting on a single server, Chiyo Analytics provides a fully cont
    ```
    This will prompt you for your preferred language and generate the `./cyanly-preinstall/` directory containing the configuration template `chiyo_analytics.toml`.
 2. Edit settings and database credentials in `./cyanly-preinstall/chiyo_analytics.toml`.
-3. Deploy the core stack (generates `.env` and `docker-compose.yaml`, downloads GeoIP files to `~/.cyanly/geoip`, extracts the management script, and spins up containers):
+3. Generate the installation files (creates `.env` and `docker-compose.yaml`, downloads GeoIP files to `~/.cyanly/geoip`, extracts the management script, and records the active install directory in `~/.cyanly_installed`):
+   ```bash
+   python3 install-cyanly.pyz gen
+   ```
+4. Start the generated Docker Compose stack:
+   ```bash
+   python3 install-cyanly.pyz up
+   ```
+   To generate and start in one step, run:
    ```bash
    python3 install-cyanly.pyz install
    ```
-4. After installation, the installer records the absolute active installation directory in `~/.cyanly_installed`. You can use the extracted `cyanly.pyz` script from the installation directory to manage that active deployment:
+5. The installer commands honor `--dest <path>` and the active installation pointer in `~/.cyanly_installed`; generated file writes prompt before overwriting existing files unless `-y` or `--yes` is provided. You can use the extracted `cyanly.pyz` script from the installation directory to manage that active deployment:
    - **Start or recreate services from the existing Compose file**: `python3 ~/.cyanly/cyanly.pyz up [service]`
    - **Restart containers**: `python3 ~/.cyanly/cyanly.pyz restart [service]`
    - **Uninstall and remove containers**: `python3 ~/.cyanly/cyanly.pyz uninstall`
    - **Uninstall with volumes (Destructive!)**: `python3 ~/.cyanly/cyanly.pyz uninstall --volume`
-   - Current implementation note: `install-cyanly.pyz install --dest <path>` writes the installation files to the requested path, starts Compose there, and updates `~/.cyanly_installed`. Use `<path>/cyanly.pyz` for that custom install. The management CLI reads the pointer first, falls back to `~/.cyanly` if the pointer is absent or invalid, and does not regenerate `.env` or `docker-compose.yaml` on `up`.
+   - Current implementation note: `install-cyanly.pyz gen --dest <path>` writes the installation files to the requested path and updates `~/.cyanly_installed`; `install-cyanly.pyz up --dest <path>` starts Compose there and updates the pointer after success; `install` performs both steps. Use `<path>/cyanly.pyz` for that custom install. The management CLI reads the pointer first, falls back to `~/.cyanly` if the pointer is absent or invalid, and does not regenerate `.env` or `docker-compose.yaml` on `up`.
 
 For detailed setup instructions, Nginx/Caddy reverse proxy mapping examples, management commands, zipapp packaging build steps, and container topology, refer to the [Deployment Status & Design Guide](./deployment/PROJECT.md).
 

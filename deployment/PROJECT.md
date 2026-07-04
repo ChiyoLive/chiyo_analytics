@@ -52,12 +52,20 @@ The datastore ports are used inside the Docker network and are not published to 
 Distributed as the bootstrap installer script.
 - **`python3 install-cyanly.pyz config`**:
   - Generates the `./cyanly-preinstall/` directory and creates the template configuration `chiyo_analytics.toml`.
-- **`python3 install-cyanly.pyz install [--dest <path>]`**:
+- **`python3 install-cyanly.pyz gen [--dest <path>]`**:
   - Reads `./cyanly-preinstall/chiyo_analytics.toml` and generates `docker-compose.yaml` and `.env` in the target directory (defaults to `~/.cyanly`).
+  - If `--dest` is omitted, uses the active directory recorded in `~/.cyanly_installed` when valid, otherwise falls back to `~/.cyanly`.
+  - Prompts before overwriting existing generated files unless `-y` or `--yes` is provided.
   - Downloads GeoIP databases (`dbip-city-ipv4.mmdb`, `dbip-city-ipv6.mmdb`, `origin-asn.mmdb`) to the installation's `/geoip` directory.
   - Extracts the management script `cyanly.pyz` into the install path.
+  - Records the absolute active installation path in `~/.cyanly_installed`.
+- **`python3 install-cyanly.pyz up [--dest <path>]`**:
+  - Starts the Docker Compose containers from an existing generated installation directory.
+  - If `--dest` is omitted, uses the active directory recorded in `~/.cyanly_installed` when valid, otherwise falls back to `~/.cyanly`.
+  - Records the absolute active installation path in `~/.cyanly_installed` after a successful start.
+- **`python3 install-cyanly.pyz install [--dest <path>]`**:
+  - Runs `gen` and then `up` for the same target directory.
   - Boots up the Docker Compose containers.
-  - After Docker Compose starts successfully, records the absolute active installation path in `~/.cyanly_installed`.
 
 ### 2. Stack Management (`cyanly.pyz`)
 Once installed, run the management script from the installation directory to manage the active installation lifecycle. The management CLI reads `~/.cyanly_installed` first and validates that the recorded directory contains `docker-compose.yaml`; if the pointer is absent or invalid, it falls back to `~/.cyanly`; if neither path is valid, it exits with a clear error.
@@ -91,6 +99,19 @@ The build script packs all scripts, templates, and libraries using `shiv`.
    - Copy `../mng_scripts/geoip_mng.py` with an auto-generated comment header to `deployment/common/geoip_mng.py`.
    - Compile `cyanly.pyz` (entrypoint: `cyanly:main`) and `install-cyanly.pyz` (entrypoint: `install-cyanly:main`).
    - Output compiled zipapps into `deployment/dist/`.
+
+### Installer Tests
+The deployment installer has local Python tests under `deployment/tests`. They isolate `HOME` and the working directory with pytest fixtures, mock GeoIP downloads and Docker execution, and use syrupy snapshots for generated `.env` and `docker-compose.yaml` output.
+
+Run the tests from the project root:
+```bash
+uv run python mng.py test deployment
+```
+
+Update snapshots after intentional installer output changes:
+```bash
+uv run pytest deployment/tests --snapshot-update
+```
 
 ### Local Docker Image Validation
 To build local images to verify backend compiling or dashboard UI bundling:

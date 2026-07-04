@@ -17,6 +17,7 @@ from rich.progress import (
     TextColumn,
     TransferSpeedColumn,
 )
+from rich.prompt import Confirm
 
 console = Console()
 
@@ -50,6 +51,7 @@ DEFAULT_GEOIP_URLS = GeoipURLs(
 )
 
 INSTALL_POINTER_PATH = Path.home() / ".cyanly_installed"
+DEFAULT_INSTALL_DIR = Path.home() / ".cyanly"
 
 
 def do_config():
@@ -67,6 +69,9 @@ def do_config():
         sys.exit(1)
 
     toml_path = target_dir / "chiyo_analytics.toml"
+    if not confirm_overwrite([toml_path]):
+        console.print(f"[yellow]{t('msg_aborted')}[/yellow]")
+        sys.exit(1)
     toml_path.write_text(toml_content, encoding="utf-8")
     console.print(f"[green]{t('msg_generated')}: {toml_path}[/green]")
     console.print(f"\n[bold]{t('msg_config_next_steps')}[/bold]")
@@ -152,7 +157,63 @@ def download_file_with_progress(url: str, dest_path: str):
         raise e
 
 
-def do_install():
+def get_dest_arg() -> Path | None:
+    if "--dest" not in sys.argv:
+        return None
+    idx = sys.argv.index("--dest")
+    if idx + 1 >= len(sys.argv):
+        console.print("[bold red]--dest requires a path[/bold red]")
+        sys.exit(1)
+    return Path(sys.argv[idx + 1]).expanduser()
+
+
+def resolve_install_dir() -> Path:
+    dest_arg = get_dest_arg()
+    if dest_arg is not None:
+        return dest_arg
+
+    if INSTALL_POINTER_PATH.exists():
+        try:
+            recorded_text = INSTALL_POINTER_PATH.read_text(encoding="utf-8").strip()
+            if recorded_text:
+                recorded = Path(recorded_text).expanduser()
+                if recorded.exists():
+                    return recorded
+                console.print(
+                    f"[yellow]{t('warn_install_pointer_invalid')}: {recorded}[/yellow]"
+                )
+        except Exception as e:
+            console.print(f"[yellow]{t('warn_install_pointer_invalid')}: {e}[/yellow]")
+
+    return DEFAULT_INSTALL_DIR
+
+
+def record_install_dir(install_dir: Path):
+    try:
+        INSTALL_POINTER_PATH.write_text(
+            str(install_dir.resolve()) + "\n", encoding="utf-8"
+        )
+        console.print(
+            f"[green]{t('msg_recorded_install_dir')}: {INSTALL_POINTER_PATH}[/green]"
+        )
+    except Exception as e:
+        console.print(f"[yellow]{t('warn_record_install_dir_failed')}: {e}[/yellow]")
+
+
+def confirm_overwrite(paths: list[Path]) -> bool:
+    existing_paths = [path for path in paths if path.exists()]
+    if not existing_paths:
+        return True
+    if "-y" in sys.argv or "--yes" in sys.argv:
+        return True
+
+    console.print(f"[yellow]{t('warn_existing_files')}[/yellow]")
+    for path in existing_paths:
+        console.print(f"  {path}")
+    return Confirm.ask(t("prompt_overwrite_existing_files"), default=False)
+
+
+def load_install_config():
     preinstall_dir = Path("./cyanly-preinstall")
     toml_path = preinstall_dir / "chiyo_analytics.toml"
 
@@ -163,6 +224,10 @@ def do_install():
     console.print(f"[cyan]{t('msg_reading_config')}: {toml_path} ...[/cyan]")
     toml_content = toml_path.read_text(encoding="utf-8")
     config = parse_toml(toml_content)
+    return toml_path, config
+
+
+def render_compose(config):
 
     pg_password = config.get("postgres", {}).get(
         "password", "cyanly-password-change-me"
@@ -204,24 +269,32 @@ def do_install():
         "${ANALYTICS_API_URL:-http://localhost:8081}", analytics_api_url
     )
 
-    install_dir = Path.home() / ".cyanly"
-    if "--dest" in sys.argv:
-        idx = sys.argv.index("--dest")
-        if idx + 1 < len(sys.argv):
-            install_dir = Path(sys.argv[idx + 1]).expanduser()
+    env_content = f"DB_PASSWORD={pg_password}\nCH_PASSWORD={ch_password}\nANALYTICS_API_URL={analytics_api_url}\n"
+    return rendered, env_content
 
+
+def do_gen():
+    toml_path, config = load_install_config()
+    rendered, env_content = render_compose(config)
+    install_dir = resolve_install_dir()
     console.print(f"[cyan]{t('msg_creating_install_dir')}: {install_dir} ...[/cyan]")
     install_dir.mkdir(parents=True, exist_ok=True)
 
-    # Write compose and toml
+    generated_paths = [
+        install_dir / "docker-compose.yaml",
+        install_dir / "chiyo_analytics.toml",
+        install_dir / ".env",
+        install_dir / "cyanly.pyz",
+    ]
+    if not confirm_overwrite(generated_paths):
+        console.print(f"[yellow]{t('msg_aborted')}[/yellow]")
+        sys.exit(1)
+
     (install_dir / "docker-compose.yaml").write_text(rendered, encoding="utf-8")
     shutil.copy(toml_path, install_dir / "chiyo_analytics.toml")
 
-    # Write .env
-    env_content = f"DB_PASSWORD={pg_password}\nCH_PASSWORD={ch_password}\nANALYTICS_API_URL={analytics_api_url}\n"
     (install_dir / ".env").write_text(env_content, encoding="utf-8")
 
-    # Extract cyanly.pyz
     try:
         cyanly_pyz_data = pkgutil.get_data("single_server_docker", "cyanly.pyz")
         if cyanly_pyz_data:
@@ -248,13 +321,19 @@ def do_install():
         if dest_path.exists() and dest_path.stat().st_size > 1024 * 1024:
             console.print(f"[cyan]{t('msg_geoip_exists_skipping')}: {filename}[/cyan]")
         else:
+            if dest_path.exists() and not confirm_overwrite([dest_path]):
+                console.print(f"[yellow]{t('msg_aborted')}[/yellow]")
+                sys.exit(1)
             try:
                 download_file_with_progress(url, str(dest_path))
             except Exception:
                 console.print(f"[yellow]{t('warn_geoip_download_failed')}[/yellow]")
 
-    # Run Docker Compose
-    console.print(f"\n[cyan]{t('msg_starting_docker')}[/cyan]")
+    record_install_dir(install_dir)
+    console.print(f"[green]{t('msg_gen_success')}[/green]")
+
+
+def find_compose_command() -> list[str]:
     cmd = ["docker", "compose"]
     try:
         subprocess.run(
@@ -263,6 +342,7 @@ def do_install():
             stderr=subprocess.DEVNULL,
             check=True,
         )
+        return cmd
     except Exception:
         cmd = ["docker-compose"]
         try:
@@ -272,26 +352,32 @@ def do_install():
                 stderr=subprocess.DEVNULL,
                 check=True,
             )
+            return cmd
         except Exception:
             console.print(f"[bold red]{t('err_docker_compose_missing')}[/bold red]")
             sys.exit(1)
 
+
+def do_up():
+    install_dir = resolve_install_dir()
+    compose_path = install_dir / "docker-compose.yaml"
+    if not compose_path.exists():
+        console.print(f"[bold red]{t('err_compose_not_found')}: {compose_path}[/bold red]")
+        sys.exit(1)
+
+    console.print(f"\n[cyan]{t('msg_starting_docker')}[/cyan]")
+    cmd = find_compose_command()
     try:
         subprocess.run(cmd + ["up", "-d"], cwd=str(install_dir), check=True)
     except subprocess.CalledProcessError as e:
         console.print(f"\n[bold red]{t('err_cmd_failed')} {e.returncode}[/bold red]")
         sys.exit(1)
 
-    try:
-        INSTALL_POINTER_PATH.write_text(
-            str(install_dir.resolve()) + "\n", encoding="utf-8"
-        )
-        console.print(
-            f"[green]{t('msg_recorded_install_dir')}: {INSTALL_POINTER_PATH}[/green]"
-        )
-    except Exception as e:
-        console.print(
-            f"[yellow]{t('warn_record_install_dir_failed')}: {e}[/yellow]"
-        )
+    record_install_dir(install_dir)
+    console.print(f"[green]{t('msg_up_success')}[/green]")
 
+
+def do_install():
+    do_gen()
+    do_up()
     console.print(f"\n[bold green]{t('msg_install_success')}[/bold green]")

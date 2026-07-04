@@ -46,7 +46,7 @@ class TestCmd:
         import sys
 
         root_dir = Path(__file__).resolve().parent
-        print("Running JS SDK tests...")
+        print("Running JS SDK tests...", flush=True)
         res = subprocess.run(["pnpm", "test"], cwd=root_dir / "sdk_js")
         if res.returncode != 0:
             sys.exit(res.returncode)
@@ -60,28 +60,44 @@ class TestCmd:
         import sys
 
         root_dir = Path(__file__).resolve().parent
-        print("Running Go backend unit tests...")
+        print("Running Go backend unit tests...", flush=True)
         res = subprocess.run(["go", "test", "-v", "./backend/..."], cwd=root_dir)
+        if res.returncode != 0:
+            sys.exit(res.returncode)
+
+    def deployment(self):
+        """
+        Run the Python deployment installer tests.
+        """
+        import subprocess
+        from pathlib import Path
+        import sys
+
+        root_dir = Path(__file__).resolve().parent
+        print("Running deployment installer tests...", flush=True)
+        res = subprocess.run(["uv", "run", "pytest", "deployment/tests"], cwd=root_dir)
         if res.returncode != 0:
             sys.exit(res.returncode)
 
     def unit(self):
         """
-        Run both the JS SDK tests and Go backend unit tests sequentially.
+        Run JS SDK, Go backend, and deployment installer unit tests sequentially.
         """
-        print("=== Step 1: Running JS SDK tests ===")
+        print("=== Step 1: Running JS SDK tests ===", flush=True)
         self.sdk_js()
-        print("\n=== Step 2: Running Go backend unit tests ===")
+        print("\n=== Step 2: Running Go backend unit tests ===", flush=True)
         self.backend()
-        print("\nAll unit tests passed successfully!")
+        print("\n=== Step 3: Running deployment installer tests ===", flush=True)
+        self.deployment()
+        print("\nAll unit tests passed successfully!", flush=True)
 
     def all(self, config="", test_file=""):
         """
         Run all unit tests followed by the E2E test suite.
         """
-        print("=== Running All Unit Tests ===")
+        print("=== Running All Unit Tests ===", flush=True)
         self.unit()
-        print("\n=== Running E2E Integration Tests ===")
+        print("\n=== Running E2E Integration Tests ===", flush=True)
         self.e2e(config=config, test_file=test_file)
 
 
