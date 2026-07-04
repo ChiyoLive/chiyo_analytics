@@ -168,7 +168,10 @@ Chiyo Analytics は、ブラウザの `localStorage` に JSON 文字列形式で
 - **パーソナライズ追跡 (Personalization)**：クロスセッションでのユーザー特定（要明示的同意）。無効化された場合、トラッキングは現在のセッション内に制限され、コレクターおよびワーカー側で訪問者 IP や収集ログが自動的に匿名化・マスキングされます。
 
 ### 同意状態の設定
-- **MPA 構成**：
+通常、ユーザーの同意状態を設定するために `setConsent` を明示的に呼び出す必要はありません。代わりに `ui.banner.render()` を呼び出してプライバシー準拠バナー（Banner）を表示し、ユーザーの同意を取得します。
+
+この API は、すでに独自の Cookie バナーを使用しているか、独自のプライバシー準拠システムを持っている方向けに用意されています。cyanly のユーザー同意事項を手動で設定する必要がある場合は、`setConsent` API を使用して設定できます：
+- **MPA SDK**：
   ```javascript
   window.cyanly.setConsent({
     required: true,
@@ -176,7 +179,7 @@ Chiyo Analytics は、ブラウザの `localStorage` に JSON 文字列形式で
     personalization: true
   });
   ```
-- **SPA 構成**：
+- **SPA SDK**：
   ```javascript
   import { setConsent } from 'cyanly_sdk/spa';
 

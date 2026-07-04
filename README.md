@@ -168,7 +168,10 @@ Chiyo Analytics supports granular user-consent states stored in `localStorage` a
 - **Personalization Cookies**: Cross-session tracking (requires consent). If disabled, visitor tracking is restricted to the current browser session, and the backend automatically anonymizes the visitor IP and logs.
 
 ### Setting Consent State
-- **MPA**:
+Generally, you do not need to call `setConsent` explicitly to configure the user consent state. Instead, you should call `ui.banner.render()` to render the privacy compliance Banner to obtain user consent.
+
+This API is reserved for those who are already using their own Cookie Banner or have their own privacy compliance system. When you need to manually set cyanly's user consent settings, you can use the `setConsent` API to configure them:
+- **MPA SDK**:
   ```javascript
   window.cyanly.setConsent({
     required: true,
@@ -176,7 +179,7 @@ Chiyo Analytics supports granular user-consent states stored in `localStorage` a
     personalization: true
   });
   ```
-- **SPA**:
+- **SPA SDK**:
   ```javascript
   import { setConsent } from 'cyanly_sdk/spa';
 
