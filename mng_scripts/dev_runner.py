@@ -34,6 +34,18 @@ def dev(config: str = "", dashboard_cmd: str = "pnpm dev"):
     else:
         config_abs = root_dir / "chiyo_analytics.toml"
 
+    # Ensure Git pre-push hook is installed automatically
+    if (root_dir / ".git").exists():
+        try:
+            subprocess.run(
+                ["uv", "run", "pre-commit", "install", "--hook-type", "pre-push"],
+                cwd=str(root_dir),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            pass
+
     from mng_scripts.geoip_mng import check_and_prepare_geoip_files
     check_and_prepare_geoip_files(str(config_abs))
 

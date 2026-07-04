@@ -606,6 +606,16 @@ You can execute various test suites using the `test` subcommands:
   uv run python mng.py test all
   ```
 
+##### Git Pre-push Hook:
+To prevent pushing broken code, a `pre-push` Git hook is managed using `pre-commit`.
+- The configuration is defined in `.pre-commit-config.yaml`.
+- It executes `uv run mng.py test all` before every `git push` (and is skipped during `git commit`).
+- The hook is automatically verified and installed whenever you launch the local development environment via `uv run python mng.py dev`.
+- To manually install or update the hook:
+  ```bash
+  uv run pre-commit install --hook-type pre-push
+  ```
+
 
 
 ##### Managing GeoIP Databases (`geoip` Subcommands):
