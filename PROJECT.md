@@ -859,10 +859,10 @@ The Go Query API serves endpoints for the dashboard and requires a valid JWT Bea
 
 ## 🤖 CI/CD Release Automation
 
-Chiyo Analytics uses **GitHub Actions** to automate the build and release cycle. When a git version tag is pushed (matching `v*` like `v1.0.0`), the workflow automatically handles publishing:
+Chiyo Analytics uses **GitHub Actions** (configured with the latest Node 24 compatible actions like `actions/checkout@v7`) to automate the build and release cycle. When a git version tag is pushed (matching `v*` like `v1.0.0`), the workflow automatically handles publishing:
 
 1. **JS SDK to NPM**: Compiles `sdk_js` and publishes it to the NPM registry under the package name `cyanly_sdk`.
-2. **Docker Images to GHCR**: Builds and pushes production Docker images to GitHub Container Registry:
+2. **Docker Images to GHCR**: Builds and pushes multi-platform production Docker images (supporting both `linux/amd64` and `linux/arm64` architectures) to GitHub Container Registry:
    - `ghcr.io/${owner}/cyanly-backend` (includes the embedded JS SDK built in Stage 1).
    - `ghcr.io/${owner}/cyanly-dashboard` (standalone Node.js environment).
 3. **Installer Packages to GitHub Releases**: Compiles the standalone Python zipapps `install-cyanly.pyz` and `cyanly.pyz` using `shiv`, and publishes them as release assets.
@@ -873,17 +873,34 @@ The project enforces a **Fixed Mode** versioning strategy across all release pac
 - `dashboard/package.json`
 - `deployment/pyproject.toml`
 
-Use the release helper to prepare version bumps:
+### 🚀 Step-by-Step Release Workflow
 
-```bash
-uv run mng.py release
-```
+To publish a new release, follow these steps in order:
 
-The helper displays the current package versions and uses an interactive Questionary menu for selecting `major`, `minor`, `patch`, or `prerelease` bumps. Prerelease bumps require choosing one of `alpha`, `beta`, or `rc`; the helper manages the numeric suffix automatically (for example, `1.0.1-alpha.0`, then `1.0.1-alpha.1`).
+1. **Bump versions locally**:
+   Run the interactive release helper script to bump the version across all manifests:
+   ```bash
+   uv run mng.py release
+   ```
+   Select the bump type (`major`, `minor`, `patch`, or `prerelease`) via the interactive Questionary menu. (For prerelease bumps, select `alpha`, `beta`, or `rc`; the helper handles the numeric suffix like `1.0.1-alpha.0` automatically).
 
-The release and PR workflows validate that all release manifests are fixed to the same SemVer version. For tag pushes, the pushed Git tag must match the manifest version exactly after the `v` prefix is removed (for example, manifest version `1.0.1-rc.0` requires tag `v1.0.1-rc.0`).
+2. **Commit and Push Manifests**:
+   Stage the updated manifests, commit them, and push to the remote branch (e.g., `main`):
+   ```bash
+   git add sdk_js/package.json dashboard/package.json deployment/pyproject.toml
+   git commit -m "chore: bump version to v1.0.0"
+   git push origin main
+   ```
 
-Stable releases publish the JS SDK to NPM with the `latest` dist-tag, create a regular GitHub Release, and push Docker image `latest` tags. Prereleases publish the JS SDK with the `next` dist-tag, create a GitHub prerelease, and do not push Docker image `latest` tags.
+3. **Create and Push Git Tag**:
+   Create a Git tag for the commit we just pushed, and push it to remote:
+   > [!IMPORTANT]
+   > The pushed Git tag must match the bumped version in the manifests exactly after the `v` prefix is removed (for example, manifest version `1.0.1-rc.0` requires tag `v1.0.1-rc.0`).
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+   Pushing the tag triggers the **Release Automation** workflow, which compiles and publishes the JS SDK to NPM (using `latest` tag for stable releases, or `next` for prereleases), builds and pushes Docker images to GHCR, and attaches the compiled `.pyz` zipapp installers to a new GitHub Release.
 
 ### Prerequisites for GitHub Actions
 To successfully trigger and execute the workflow, you must configure the following:
