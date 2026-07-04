@@ -857,6 +857,41 @@ The Go Query API serves endpoints for the dashboard and requires a valid JWT Bea
 
 ---
 
+## 🤖 CI/CD Release Automation
+
+Chiyo Analytics uses **GitHub Actions** to automate the build and release cycle. When a git version tag is pushed (matching `v*` like `v1.0.0`), the workflow automatically handles publishing:
+
+1. **JS SDK to NPM**: Compiles `sdk_js` and publishes it to the NPM registry under the package name `cyanly_sdk`.
+2. **Docker Images to GHCR**: Builds and pushes production Docker images to GitHub Container Registry:
+   - `ghcr.io/${owner}/cyanly-backend` (includes the embedded JS SDK built in Stage 1).
+   - `ghcr.io/${owner}/cyanly-dashboard` (standalone Node.js environment).
+3. **Installer Packages to GitHub Releases**: Compiles the standalone Python zipapps `install-cyanly.pyz` and `cyanly.pyz` using `shiv`, and publishes them as release assets.
+
+### Fixed Mode Versioning
+The project enforces a **Fixed Mode** versioning strategy across all release packages. The following manifests must always share the same version, even when only one package has content changes:
+- `sdk_js/package.json`
+- `dashboard/package.json`
+- `deployment/pyproject.toml`
+
+Use the release helper to prepare version bumps:
+
+```bash
+uv run mng.py release
+```
+
+The helper displays the current package versions and uses an interactive Questionary menu for selecting `major`, `minor`, `patch`, or `prerelease` bumps. Prerelease bumps require choosing one of `alpha`, `beta`, or `rc`; the helper manages the numeric suffix automatically (for example, `1.0.1-alpha.0`, then `1.0.1-alpha.1`).
+
+The release and PR workflows validate that all release manifests are fixed to the same SemVer version. For tag pushes, the pushed Git tag must match the manifest version exactly after the `v` prefix is removed (for example, manifest version `1.0.1-rc.0` requires tag `v1.0.1-rc.0`).
+
+Stable releases publish the JS SDK to NPM with the `latest` dist-tag, create a regular GitHub Release, and push Docker image `latest` tags. Prereleases publish the JS SDK with the `next` dist-tag, create a GitHub prerelease, and do not push Docker image `latest` tags.
+
+### Prerequisites for GitHub Actions
+To successfully trigger and execute the workflow, you must configure the following:
+- **NPM Trusted Publishing (OIDC)**: In your NPM account settings (under the `cyanly_sdk` package or global Trusted Publishers), add a "Trusted Publisher" linking your GitHub organization/repository and specifying `release.yaml` as the Workflow filename. This enables secure, passwordless publishing of the JS SDK with Provenance.
+- **Workflow Permissions**: Ensure the default `GITHUB_TOKEN` is granted "Read and write permissions" (under Settings -> Actions -> General -> Workflow permissions) to authorize image pushes to GHCR and asset attachments on Releases.
+
+---
+
 ## 🗺️ Roadmaps
 - **v1.0.0 Release**: For the production-ready roadmap and pending feature checklists, please refer to [ROAD_TO_V1.md](./ROAD_TO_V1.md).
 - **v2.0.0 Release**: For the enterprise multi-tenancy and distributed scalability roadmap, please refer to [ROAD_TO_V2.md](./ROAD_TO_V2.md).

@@ -85,6 +85,34 @@ class TestCmd:
         self.e2e(config=config, test_file=test_file)
 
 
+class ReleaseCmd:
+    def __call__(self):
+        """
+        Interactively bump all fixed-version release packages.
+        """
+        import sys
+
+        from mng_scripts.release import main as release_main
+
+        sys.exit(release_main([]))
+
+    def check(self, tag=""):
+        """
+        Validate that all release packages use the same fixed version.
+
+        Args:
+            tag: Optional git tag (for example, v1.2.3) that must match the package version.
+        """
+        import sys
+
+        from mng_scripts.release import main as release_main
+
+        args = ["check"]
+        if tag:
+            args.extend(["--tag", tag])
+        sys.exit(release_main(args))
+
+
 
 
 class GeoIPCmd:
@@ -134,6 +162,7 @@ class Mng:
     def __init__(self):
         self.clean = CleanCmd()
         self.test = TestCmd()
+        self.release = ReleaseCmd()
         self.geoip = GeoIPCmd()
 
     def dev(self, config="", dashboard_cmd="pnpm dev"):

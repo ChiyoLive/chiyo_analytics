@@ -1,0 +1,20 @@
+name: Release Version Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  check-release-version:
+    name: Check Fixed Release Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check Fixed Release Version
+        run: python3 -m mng_scripts.release check
