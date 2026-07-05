@@ -3,6 +3,7 @@ name = "cyanly-installer"
 version = "1.0.1"
 dependencies = [
     "rich>=15.0.0",
+    "ruamel.yaml>=0.19.1,<0.20",
 ]
 
 [build-system]

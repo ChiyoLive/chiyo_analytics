@@ -7,6 +7,7 @@ import (
 
 	"chiyo_analytics/backend/pkg/auth"
 	"chiyo_analytics/backend/pkg/config"
+	"chiyo_analytics/backend/pkg/cors"
 	"chiyo_analytics/backend/pkg/models"
 
 	"github.com/gin-gonic/gin"
@@ -17,13 +18,7 @@ func CorsMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 		if origin != "" {
-			allowed := false
-			for _, o := range cfg.API.CorsAllowedOrigins {
-				if o == origin {
-					allowed = true
-					break
-				}
-			}
+			allowed := cors.MatchOrigin(cfg.API.CorsAllowedOrigins, origin)
 
 			if allowed {
 				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)

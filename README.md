@@ -24,7 +24,7 @@ A modern, high-performance, and privacy-compliant aggregate web analytics platfo
 
 ### Prerequisites
 - **Docker** and **Docker Compose** installed on your server.
-- **Python 3** installed on your server (for the installer script).
+- **Python 3** installed on your server (used to run the installer script. Generally, modern Linux distributions come with a system-level python3, which is sufficient. We provide a self-contained Python zipapp script that doesn't require installing any dependencies).
 
 ### Step 1: Download & Configure
 Download the latest configuration wizard and run the initialization step:

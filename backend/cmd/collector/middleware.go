@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"chiyo_analytics/backend/pkg/config"
+	"chiyo_analytics/backend/pkg/cors"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,12 +30,7 @@ func CorsMiddleware(cfg *config.Config) gin.HandlerFunc {
 		// 2. Validate Origin
 		allowed := false
 		if reqOrigin != "" {
-			for _, o := range cfg.Collector.CorsAllowedOrigins {
-				if o == reqOrigin {
-					allowed = true
-					break
-				}
-			}
+			allowed = cors.MatchOrigin(cfg.Collector.CorsAllowedOrigins, reqOrigin)
 		} else {
 			// Fallback: allow requests with missing Origin/Referer headers (like local curl testing)
 			allowed = true

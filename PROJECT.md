@@ -372,6 +372,7 @@ To protect the Collector and Query API from spam, spoofing, unauthorized reads, 
 
 1. **Strict Server-Side Origin & Referer Verification**:
    - The Collector validates the incoming `Origin` and `Referer` headers against `cors_allowed_origins`.
+   - CORS origin allowlists support exact matches and Go `path.Match`-style glob patterns such as `https://*.example.com`; raw `*` remains rejected in configuration.
    - Unauthorized origins are immediately rejected with `403 Forbidden`.
 
 2. **Dynamic Site ID Whitelisting**:
@@ -716,7 +717,7 @@ For production hosting on a single server, Chiyo Analytics provides a fully cont
    python3 install-cyanly.pyz config
    ```
    This will prompt you for your preferred language and generate the `./cyanly-preinstall/` directory containing the configuration template `chiyo_analytics.toml`.
-2. Edit settings and database credentials in `./cyanly-preinstall/chiyo_analytics.toml`.
+2. Edit settings and database credentials in `./cyanly-preinstall/chiyo_analytics.toml`. For single-server Docker deployments, `[postgres.deploy.single_server_docker]`, `[clickhouse.deploy.single_server_docker]`, and `[redis.deploy.single_server_docker]` can mark a datastore as external or select a named volume/bind mount for internal datastores. Redis and PostgreSQL use `host_port` for optional host publishing; ClickHouse uses explicit `native_host_port` and `http_host_port` fields for its TCP and HTTP interfaces.
 3. Generate the installation files (creates `.env` and `docker-compose.yaml`, downloads GeoIP files to `~/.cyanly/geoip`, extracts the management script, and records the active install directory in `~/.cyanly_installed`):
    ```bash
    python3 install-cyanly.pyz gen
@@ -735,6 +736,7 @@ For production hosting on a single server, Chiyo Analytics provides a fully cont
    - **Uninstall and remove containers**: `python3 ~/.cyanly/cyanly.pyz uninstall`
    - **Uninstall with volumes (Destructive!)**: `python3 ~/.cyanly/cyanly.pyz uninstall --volume`
    - Current implementation note: `install-cyanly.pyz gen --dest <path>` writes the installation files to the requested path and updates `~/.cyanly_installed`; `install-cyanly.pyz up --dest <path>` starts Compose there and updates the pointer after success; `install` performs both steps. Use `<path>/cyanly.pyz` for that custom install. The management CLI reads the pointer first, falls back to `~/.cyanly` if the pointer is absent or invalid, and does not regenerate `.env` or `docker-compose.yaml` on `up`.
+   - The installer parses TOML with Python's standard `tomllib` and renders Compose through `ruamel.yaml`, so service removal, port publishing, dependency updates, and volume declarations are applied as structured YAML changes rather than ad hoc template string replacement.
 
 For detailed setup instructions, Nginx/Caddy reverse proxy mapping examples, management commands, zipapp packaging build steps, and container topology, refer to the [Deployment Status & Design Guide](./deployment/PROJECT.md).
 

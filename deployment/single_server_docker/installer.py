@@ -1,14 +1,17 @@
 import os
 import pkgutil
-import re
 import shutil
 import subprocess
 import sys
+import tomllib
 import urllib.request
 from dataclasses import dataclass
+from io import StringIO
 from pathlib import Path
 
 from common.i18n import t
+from ruamel.yaml import YAML
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from rich.console import Console
 from rich.progress import (
     BarColumn,
@@ -78,33 +81,7 @@ def do_config():
 
 
 def parse_toml(content_str):
-    config = {}
-    current_section = None
-    section_pat = re.compile(r"^\[([^\]]+)\]")
-    key_val_pat = re.compile(r"^([a-zA-Z0-9_\-\.]+)\s*=\s*(.*)$")
-
-    for line in content_str.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        m_sec = section_pat.match(line)
-        if m_sec:
-            current_section = m_sec.group(1).strip()
-            config[current_section] = {}
-        else:
-            m_kv = key_val_pat.match(line)
-            if m_kv:
-                key = m_kv.group(1).strip()
-                val = m_kv.group(2).strip()
-                if (val.startswith('"') and val.endswith('"')) or (
-                    val.startswith("'") and val.endswith("'")
-                ):
-                    val = val[1:-1]
-                if current_section:
-                    config[current_section][key] = val
-                else:
-                    config[key] = val
-    return config
+    return tomllib.loads(content_str)
 
 
 def extract_port(addr_str, default_port):
@@ -117,6 +94,112 @@ def extract_port(addr_str, default_port):
         if port_part.isdigit():
             return int(port_part)
     return default_port
+
+
+def parse_bool(value, default=False):
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized == "true":
+            return True
+        if normalized == "false":
+            return False
+    raise ValueError(f"expected boolean value, got {value!r}")
+
+
+def parse_host_port(value, default_port=0):
+    if value is None:
+        return default_port
+    if isinstance(value, int):
+        port = value
+    elif isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return default_port
+        if not stripped.isdigit():
+            raise ValueError(f"expected numeric host port, got {value!r}")
+        port = int(stripped)
+    else:
+        raise ValueError(f"expected numeric host port, got {value!r}")
+    if port < 0 or port > 65535:
+        raise ValueError(f"host port out of range: {port}")
+    return port
+
+
+def build_port_bindings(bindings):
+    return [
+        f"{host_port}:{container_port}"
+        for host_port, container_port in bindings
+        if host_port > 0
+    ]
+
+
+def is_bind_volume(source: str) -> bool:
+    return source.startswith(("/", "./", "../", "~"))
+
+
+def set_command_arg(service, flag: str, value: str):
+    command = service.get("command")
+    if not isinstance(command, list):
+        raise ValueError(f"service command must be a list for {flag}")
+    try:
+        idx = command.index(flag)
+    except ValueError as exc:
+        raise ValueError(f"missing command flag {flag}") from exc
+    if idx + 1 >= len(command):
+        raise ValueError(f"missing value for command flag {flag}")
+    command[idx + 1] = value
+
+
+def set_mapping_dependency(service, dependency: str, condition: str):
+    depends_on = service.setdefault("depends_on", CommentedMap())
+    if not isinstance(depends_on, dict):
+        depends_on = CommentedMap()
+        service["depends_on"] = depends_on
+    depends_on[dependency] = CommentedMap({"condition": condition})
+
+
+def remove_mapping_dependency(service, dependency: str):
+    depends_on = service.get("depends_on")
+    if isinstance(depends_on, dict):
+        depends_on.pop(dependency, None)
+        if not depends_on:
+            service.pop("depends_on", None)
+
+
+def set_ports(service, ports):
+    if ports:
+        service["ports"] = CommentedSeq(ports)
+    else:
+        service.pop("ports", None)
+
+
+def set_single_volume(service, source: str, target: str):
+    service["volumes"] = CommentedSeq([f"{source}:{target}"])
+
+
+def set_named_volume(volumes, default_name: str, source: str, external: bool):
+    volumes.pop(default_name, None)
+    if not external and not is_bind_volume(source):
+        volumes[source] = CommentedMap()
+
+
+def replace_env_value(environment, key: str, value):
+    if isinstance(environment, dict):
+        environment[key] = value
+        return
+    if isinstance(environment, list):
+        prefix = f"{key}="
+        for idx, item in enumerate(environment):
+            if isinstance(item, str) and item.startswith(prefix):
+                environment[idx] = f"{prefix}{value}"
+                return
+        environment.append(f"{prefix}{value}")
+        return
+    raise ValueError(f"unsupported environment format for {key}")
 
 
 def download_file_with_progress(url: str, dest_path: str):
@@ -232,9 +315,39 @@ def render_compose(config):
     pg_password = config.get("postgres", {}).get(
         "password", "cyanly-password-change-me"
     )
+    pg_user = config.get("postgres", {}).get("username", "cyanly")
+    pg_db = config.get("postgres", {}).get("database", "cyanly")
+    pg_sslmode = config.get("postgres", {}).get("sslmode", "disable")
+    pg_addr = config.get("postgres", {}).get("addr", "cyanly-postgres:5432")
+
     ch_password = config.get("clickhouse", {}).get(
         "password", "cyanly-password-change-me"
     )
+    ch_user = config.get("clickhouse", {}).get("username", "default")
+    ch_db = config.get("clickhouse", {}).get("database", "cyanly")
+    ch_table = config.get("clickhouse", {}).get("table", "cyanly.events")
+    ch_addr = config.get("clickhouse", {}).get("addr", "cyanly-clickhouse:9000")
+
+    def get_deploy_cfg(svc_name):
+        return config.get(svc_name, {}).get("deploy", {}).get("single_server_docker", {})
+
+    pg_deploy = get_deploy_cfg("postgres")
+    pg_external = parse_bool(pg_deploy.get("external"), False)
+    pg_host_port = parse_host_port(pg_deploy.get("host_port"), 0)
+    pg_volume = pg_deploy.get("volume", "pg-data")
+
+    ch_deploy = get_deploy_cfg("clickhouse")
+    ch_external = parse_bool(ch_deploy.get("external"), False)
+    ch_native_host_port = parse_host_port(ch_deploy.get("native_host_port"), 0)
+    ch_http_host_port = parse_host_port(ch_deploy.get("http_host_port"), 0)
+    ch_volume = ch_deploy.get("volume", "clickhouse-data")
+
+    redis_deploy = get_deploy_cfg("redis")
+    redis_external = parse_bool(redis_deploy.get("external"), False)
+    redis_host_port = parse_host_port(redis_deploy.get("host_port"), 0)
+    redis_volume = redis_deploy.get("volume", "redis-data")
+
+
     collector_port = extract_port(config.get("collector", {}).get("addr"), 8080)
     api_port = extract_port(config.get("api", {}).get("addr"), 8081)
     worker_port = extract_port(config.get("worker", {}).get("health_addr"), 8082)
@@ -255,19 +368,93 @@ def render_compose(config):
         console.print(f"[bold red]{t('err_read_compose_template')}: {e}[/bold red]")
         sys.exit(1)
 
-    rendered = rendered.replace(
-        "${DB_PASSWORD:-cyanly-password-change-me}", pg_password
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    compose = yaml.load(rendered)
+    services = compose["services"]
+    volumes = compose.setdefault("volumes", CommentedMap())
+
+    pg_dsn = (
+        f"postgres://{pg_user}:{pg_password}@{pg_addr}/{pg_db}"
+        f"?sslmode={pg_sslmode}"
     )
-    rendered = rendered.replace(
-        "${CH_PASSWORD:-cyanly-password-change-me}", ch_password
+    ch_dsn = f"clickhouse://{ch_user}:{ch_password}@{ch_addr}/{ch_db}"
+
+    set_command_arg(services["cyanly-migrate-pg"], "--dsn", pg_dsn)
+    set_command_arg(services["cyanly-migrate-ch"], "--dsn", ch_dsn)
+    set_command_arg(services["cyanly-migrate-ch"], "--var", f"table={ch_table}")
+    replace_env_value(services["cyanly-postgres"]["environment"], "POSTGRES_DB", pg_db)
+    replace_env_value(
+        services["cyanly-postgres"]["environment"], "POSTGRES_USER", pg_user
     )
-    rendered = rendered.replace("${COLLECTOR_PORT:-8080}", str(collector_port))
-    rendered = rendered.replace("${API_PORT:-8081}", str(api_port))
-    rendered = rendered.replace("${WORKER_PORT:-8082}", str(worker_port))
-    rendered = rendered.replace("${DASHBOARD_PORT:-8079}", str(dashboard_port))
-    rendered = rendered.replace(
-        "${ANALYTICS_API_URL:-http://localhost:8081}", analytics_api_url
+    replace_env_value(
+        services["cyanly-clickhouse"]["environment"], "CLICKHOUSE_DB", ch_db
     )
+    replace_env_value(
+        services["cyanly-clickhouse"]["environment"], "CLICKHOUSE_USER", ch_user
+    )
+
+    set_ports(services["cyanly-collector"], [f"{collector_port}:{collector_port}"])
+    set_ports(services["cyanly-api"], [f"{api_port}:{api_port}"])
+    set_ports(services["cyanly-worker"], [f"{worker_port}:{worker_port}"])
+    set_ports(services["cyanly-dashboard"], [f"{dashboard_port}:{dashboard_port}"])
+
+    if pg_external:
+        services.pop("cyanly-postgres", None)
+        services["cyanly-migrate-pg"].pop("depends_on", None)
+    else:
+        set_ports(
+            services["cyanly-postgres"],
+            [f"{pg_host_port}:5432"] if pg_host_port > 0 else [],
+        )
+        set_single_volume(services["cyanly-postgres"], pg_volume, "/var/lib/postgresql")
+        set_mapping_dependency(
+            services["cyanly-migrate-pg"], "cyanly-postgres", "service_healthy"
+        )
+    set_named_volume(volumes, "pg-data", pg_volume, pg_external)
+
+    if ch_external:
+        services.pop("cyanly-clickhouse", None)
+        services["cyanly-migrate-ch"].pop("depends_on", None)
+    else:
+        set_ports(
+            services["cyanly-clickhouse"],
+            build_port_bindings(
+                [(ch_native_host_port, 9000), (ch_http_host_port, 8123)]
+            ),
+        )
+        set_single_volume(
+            services["cyanly-clickhouse"], ch_volume, "/var/lib/clickhouse"
+        )
+        set_mapping_dependency(
+            services["cyanly-migrate-ch"], "cyanly-clickhouse", "service_healthy"
+        )
+    set_named_volume(volumes, "clickhouse-data", ch_volume, ch_external)
+
+    if redis_external:
+        services.pop("cyanly-redis", None)
+        remove_mapping_dependency(services["cyanly-collector"], "cyanly-redis")
+        remove_mapping_dependency(services["cyanly-worker"], "cyanly-redis")
+    else:
+        set_ports(
+            services["cyanly-redis"],
+            [f"{redis_host_port}:6379"] if redis_host_port > 0 else [],
+        )
+        set_single_volume(services["cyanly-redis"], redis_volume, "/data")
+        set_mapping_dependency(
+            services["cyanly-collector"], "cyanly-redis", "service_healthy"
+        )
+        set_mapping_dependency(
+            services["cyanly-worker"], "cyanly-redis", "service_healthy"
+        )
+    set_named_volume(volumes, "redis-data", redis_volume, redis_external)
+
+    if not volumes:
+        compose.pop("volumes", None)
+
+    output = StringIO()
+    yaml.dump(compose, output)
+    rendered = output.getvalue()
 
     env_content = f"DB_PASSWORD={pg_password}\nCH_PASSWORD={ch_password}\nANALYTICS_API_URL={analytics_api_url}\n"
     return rendered, env_content

@@ -35,6 +35,14 @@ The datastore ports are used inside the Docker network and are not published to 
 - **ClickHouse**: `9000` (Native TCP connection for analytics)
 - **PostgreSQL**: `5432` (Metadata repository, site authorizations, policy records)
 
+Each datastore has a `[<datastore>.deploy.single_server_docker]` section in `chiyo_analytics.toml`:
+- `external = true` removes the bundled datastore container and its generated Compose dependencies so services connect to the configured external `addr`.
+- `host_port = <port>` publishes the bundled datastore port for host-side debugging or integrations while preserving container-internal connectivity.
+- ClickHouse uses explicit `native_host_port = <port>` and `http_host_port = <port>` fields instead of `host_port`, because it has both native TCP (`9000`) and HTTP (`8123`) interfaces.
+- `volume = "<name-or-path>"` replaces the default named volume with either another named volume or a bind mount path such as `/mnt/data/postgres`.
+
+The installer reads TOML with Python's standard `tomllib` and renders Docker Compose with `ruamel.yaml` structured YAML updates. The checked-in Compose template remains valid YAML; generation mutates service maps, dependency maps, port lists, and volume declarations rather than relying on block-level string replacement.
+
 ### Configurations & Seeding
 - **Configuration File**: `chiyo_analytics.toml`
   - Configures JWT secrets, database connection settings, trusted proxies, CORS rules, and GeoIP updater parameters.

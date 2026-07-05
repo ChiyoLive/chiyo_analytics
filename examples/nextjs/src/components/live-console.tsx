@@ -99,7 +99,7 @@ export function LiveConsole({ lang }: { lang: string }) {
       duration: "Duration",
     },
     zh: {
-      title: "千代实时数据接收控制台",
+      title: "Chiyo实时数据接收控制台",
       captured: "个页面访问事件被捕获",
       empty: "暂无分析事件记录。请切换页面或刷新以产生事件！",
       empty_sub: "（注意：停留时间小于 1 秒的访问将被自动过滤以防杂音干扰）",
@@ -112,7 +112,7 @@ export function LiveConsole({ lang }: { lang: string }) {
       duration: "停留时长",
     },
     ja: {
-      title: "千代ライブ受信コンソール",
+      title: "Chiyo Analytics 受信コンソール",
       captured: "件のイベントを検知",
       empty:
         "分析イベントはまだありません。他のページに移動するか、リロードしてイベントを発生させてください！",

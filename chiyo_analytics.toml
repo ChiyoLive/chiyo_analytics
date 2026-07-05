@@ -52,12 +52,35 @@ password = ""
 db = 0
 key = "cyanly:events"
 
+[redis.deploy.single_server_docker]
+external = false
+host_port = 6379
+volume = "redis-data"
+
 [clickhouse]
 addr = "localhost:9000" # ClickHouse native TCP port
 database = "cyanly"
 username = "default"
 password = "cyanly-password"
 table = "cyanly.events"
+
+[clickhouse.deploy.single_server_docker]
+external = false
+native_host_port = 9000
+http_host_port = 8123
+volume = "clickhouse-data"
+
+[postgres]
+addr = "localhost:5432"
+database = "cyanly"
+username = "cyanly"
+password = "cyanly-password"
+sslmode = "disable"
+
+[postgres.deploy.single_server_docker]
+external = false
+host_port = 5432
+volume = "pg-data"
 
 [geoip]
 db_ipv4 = "./dbip-city-ipv4.mmdb"
@@ -78,10 +101,3 @@ cron = "0 1 2,15 * *"
 name = "origin-asn.mmdb"
 url = "https://github.com/sapics/ip-location-db/releases/download/latest/origin-asn.mmdb"
 cron = "0 4 * * *"
-
-[postgres]
-addr = "localhost:5432"
-database = "cyanly"
-username = "cyanly"
-password = "cyanly-password"
-sslmode = "disable"
