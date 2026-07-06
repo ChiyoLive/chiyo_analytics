@@ -3,11 +3,10 @@
 - install-cyanly.pyz 新增 [--config path/to/chiyo_analytics.toml] 选项
 
 ## fix
-- dashbaord：
+- dashbaord
     - 修复了没有权限的用户登陆 dashboard 时会直接渲染错误页面的问题。新增了一个骨架屏引导用户创建或联系管理员授予权限。
-
-## fix
-- 修复了 install-cyanly.pyz 生成的 docker-compose.yaml 丢失格式的问题
+- install-cyanly.pyz
+    - 生成的 docker-compose.yaml 丢失格式的问题
 
 # v1.1.0
 ## new
