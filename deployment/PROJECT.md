@@ -141,19 +141,26 @@ Since the application ports are published by Docker Compose, it is highly recomm
 
 ### Routing Rules
 
-All external traffic must be routed through the reverse proxy to the correct backend service. The route matching order matters — more specific prefixes must be matched before the catch-all dashboard route.
+To prevent Next.js's internal `/api/` routes from conflicting with the backend API, it is highly recommended to deploy the backend and the dashboard on separate subdomains (e.g., `api.example.com` and `app.example.com`). All external traffic must be routed through the reverse proxy to the correct backend service.
+
+**Backend Domain (`api.example.com`)**
 
 | Route Pattern | Backend | Port | Purpose |
 |---------------|---------|------|---------|
 | `/collect` | Collector | 8080 | Telemetry beacon ingestion (`POST`) and GeoIP lookup (`GET /collect/geo`) |
 | `/sdk/*` | Collector | 8080 | Tracking SDK scripts (served when `serve_sdk = true`; the backend sets `Cache-Control: public, max-age=300`) |
 | `/api/*` | Query API | 8081 | Dashboard API: auth (`/api/v1/auth/*`), user management (`/api/v1/users/*`), site management (`/api/v1/sites/*`), analytics queries (`/api/v1/analytics/*`) |
-| `/*` | Dashboard | 8079 | Next.js web UI (catch-all fallback) |
+
+**Dashboard Domain (`app.example.com`)**
+
+| Route Pattern | Backend | Port | Purpose |
+|---------------|---------|------|---------|
+| `/*` | Dashboard | 8079 | Next.js web UI |
 
 ### Security Notes
 
 - **Client IP forwarding is critical.** The backend uses Gin's `c.ClientIP()` to extract the real client IP from `X-Real-IP` / `X-Forwarded-For` headers, but **only when the request originates from a trusted proxy** (configured via `trusted_proxies` in `chiyo_analytics.toml`). This IP is used for GeoIP enrichment on `/collect` and Redis-based login rate limiting on `/api/v1/auth/login` (5 attempts per 15 minutes per IP). If headers are missing or the proxy is not trusted, the backend falls back to the TCP remote address, which would be `127.0.0.1` — defeating both features.
-- **Do not add CORS headers at the proxy layer.** CORS is fully managed by the Go backend's middleware (Collector and API each have their own logic controlled by `cors_allowed_origins`). Adding proxy-level CORS headers will cause duplicated or conflicting headers.
+- **Do not add CORS headers at the proxy layer.** CORS is fully managed by the Go backend's middleware (Collector and API each have their own logic controlled by `cors_allowed_origins`). Adding proxy-level CORS headers will cause duplicated or conflicting headers. Since the dashboard and backend are on different subdomains, ensure `cors_allowed_origins` in `chiyo_analytics.toml` includes your dashboard's URL (e.g., `https://app.example.com`).
 - **Security headers should be added at the proxy layer.** The backend does not set HSTS, X-Frame-Options, X-Content-Type-Options, or Referrer-Policy headers. These should be enforced by the reverse proxy.
 - **Health probe endpoints (`/healthz`, `/readyz`) should not be exposed externally.** They are designed for container orchestrators (Docker healthchecks, Kubernetes probes) on the internal network.
 - **Admin route authentication is handled by the Go backend.** Routes under `/api/v1/users/*` and `/api/v1/sites/*` require superuser-level JWT authentication enforced by the API server's middleware. No additional proxy-level access control is strictly necessary, though IP whitelisting can be added as defense-in-depth.
@@ -161,7 +168,8 @@ All external traffic must be routed through the reverse proxy to the correct bac
 ### Caddy v2 Example
 
 ```caddyfile
-analytics.example.com {
+# --- Backend Domain ---
+api.example.com {
     # --- Security Headers ---
     header {
         Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
@@ -201,9 +209,25 @@ analytics.example.com {
         }
     }
 
+    encode gzip zstd
+}
+
+# --- Dashboard Domain ---
+app.example.com {
+    # --- Security Headers ---
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Content-Type-Options    "nosniff"
+        X-Frame-Options           "DENY"
+        Referrer-Policy           "strict-origin-when-cross-origin"
+        -Server
+    }
+
     # --- Dashboard (port 8079) ---
     handle {
-        reverse_proxy 127.0.0.1:8079
+        reverse_proxy 127.0.0.1:8079 {
+            header_up X-Real-IP {remote_host}
+        }
     }
 
     encode gzip zstd
@@ -235,20 +259,22 @@ upstream cyanly_dashboard {
     keepalive 8;
 }
 
-# --- HTTP → HTTPS Redirect ---
+# ==========================================
+# Backend Server (api.example.com)
+# ==========================================
 server {
     listen 80;
-    server_name analytics.example.com;
+    server_name api.example.com;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name analytics.example.com;
+    server_name api.example.com;
 
     # SSL Configuration (update paths to your certificates)
-    # ssl_certificate     /etc/letsencrypt/live/analytics.example.com/fullchain.pem;
-    # ssl_certificate_key /etc/letsencrypt/live/analytics.example.com/privkey.pem;
+    # ssl_certificate     /etc/letsencrypt/live/api.example.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/api.example.com/privkey.pem;
 
     # --- Security Headers ---
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
@@ -316,8 +342,37 @@ server {
         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $scheme;
     }
+}
 
-    # --- Dashboard: Next.js UI (port 8079, catch-all) ---
+# ==========================================
+# Dashboard Server (app.example.com)
+# ==========================================
+server {
+    listen 80;
+    server_name app.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name app.example.com;
+
+    # SSL Configuration (update paths to your certificates)
+    # ssl_certificate     /etc/letsencrypt/live/app.example.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/app.example.com/privkey.pem;
+
+    # --- Security Headers ---
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options    "nosniff" always;
+    add_header X-Frame-Options           "DENY" always;
+    add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
+
+    # --- Gzip Compression ---
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml;
+    gzip_min_length 256;
+
+    # --- Dashboard: Next.js UI (port 8079) ---
     location / {
         proxy_pass         http://cyanly_dashboard;
         proxy_http_version 1.1;
@@ -326,6 +381,56 @@ server {
         proxy_set_header   X-Real-IP         $remote_addr;
         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### If you use cloudflare DNS proxy mode
+
+If the application is deployed behind a Cloudflare proxy, the incoming connections to Nginx/Caddy will originate from Cloudflare's edge IPs. To ensure that proxy-level rate limits, security rules, and backend-level GeoIP/rate-limiting resolve the actual client IP, you must configure Nginx or Caddy to trust Cloudflare IP ranges.
+
+#### Nginx Configuration
+
+Add the following configuration (usually in your `http { ... }` block of `/etc/nginx/nginx.conf` or inside the relevant `server { ... }` block) to use Nginx's `ngx_http_realip_module` to parse the real client IP:
+
+```nginx
+# Cloudflare IPv4
+set_real_ip_from 103.21.244.0/22;
+set_real_ip_from 103.22.200.0/22;
+set_real_ip_from 103.31.4.0/22;
+set_real_ip_from 104.16.0.0/13;
+set_real_ip_from 104.24.0.0/14;
+set_real_ip_from 108.162.192.0/18;
+set_real_ip_from 131.0.72.0/22;
+set_real_ip_from 141.101.64.0/18;
+set_real_ip_from 162.158.0.0/15;
+set_real_ip_from 172.64.0.0/13;
+set_real_ip_from 173.245.48.0/20;
+set_real_ip_from 188.114.96.0/20;
+set_real_ip_from 190.93.240.0/20;
+set_real_ip_from 197.234.240.0/22;
+set_real_ip_from 198.41.128.0/17;
+
+# Cloudflare IPv6
+set_real_ip_from 2400:cb00::/32;
+set_real_ip_from 2606:4700::/32;
+set_real_ip_from 2803:f800::/32;
+set_real_ip_from 2405:b500::/32;
+set_real_ip_from 2405:8100::/32;
+set_real_ip_from 2a06:98c0::/29;
+set_real_ip_from 2c0f:f248::/32;
+
+real_ip_header CF-Connecting-IP;
+```
+
+#### Caddy v2 Configuration
+
+For Caddy, you trust Cloudflare proxy IPs globally in the `servers` block of the global options block at the very top of your `Caddyfile`. This allows Caddy to parse `X-Forwarded-For` and populate the correct client IP:
+
+```caddyfile
+{
+    servers {
+        trusted_proxies static 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 104.16.0.0/13 104.24.0.0/14 108.162.192.0/18 131.0.72.0/22 141.101.64.0/18 162.158.0.0/15 172.64.0.0/13 173.245.48.0/20 188.114.96.0/20 190.93.240.0/20 197.234.240.0/22 198.41.128.0/17 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
     }
 }
 ```
