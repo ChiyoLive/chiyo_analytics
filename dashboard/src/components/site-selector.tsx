@@ -10,34 +10,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchWithAuth } from "@/lib/auth";
-import { denvPublic } from "@/lib/api";
 
-import type { DashboardClientTrans } from "@/app/[lang]/page";
+import type {
+  DashboardClientTrans,
+  SiteInfo,
+} from "@/app/[lang]/dashboard-client";
 
 type SiteSelectorProps = {
   initialSiteId: string;
   initialRange: string;
   trans: DashboardClientTrans;
-};
-
-type SiteInfo = {
-  site_id: string;
-  name: string;
+  sites: SiteInfo[];
 };
 
 export function SiteSelector({
   initialSiteId,
   initialRange,
   trans,
+  sites,
 }: SiteSelectorProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [siteId, setSiteId] = useState(initialSiteId);
   const [range, setRange] = useState(initialRange);
   const [isPending, startTransition] = useTransition();
-  const [sites, setSites] = useState<SiteInfo[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Sync props to state if they change externally
+  useEffect(() => {
+    setSiteId(initialSiteId); // eslint-disable-line react-hooks/set-state-in-effect
+  }, [initialSiteId]);
+
+  useEffect(() => {
+    setRange(initialRange); // eslint-disable-line react-hooks/set-state-in-effect
+  }, [initialRange]);
 
   const handleApply = (newSiteId: string, newRange: string) => {
     startTransition(() => {
@@ -48,48 +53,6 @@ export function SiteSelector({
       router.push(`?${params.toString()}`);
     });
   };
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchSites = async () => {
-      try {
-        const res = await fetchWithAuth(
-          `${await denvPublic.API_URL()}/api/v1/auth/me`,
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted) {
-            const list = (data.sites || []) as SiteInfo[];
-            setSites(list);
-
-            // Redirect to first site if the current siteId is not authorized (and list is not empty)
-            if (
-              list.length > 0 &&
-              !list.some((s) => s.site_id === initialSiteId)
-            ) {
-              const firstSiteId = list[0].site_id;
-              setSiteId(firstSiteId);
-              const params = new URLSearchParams(window.location.search);
-              params.set("site_id", firstSiteId);
-              params.set("range", initialRange);
-              router.push(`?${params.toString()}`);
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch sites for dropdown:", err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchSites();
-    return () => {
-      isMounted = false;
-    };
-  }, [initialSiteId, initialRange, router]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,32 +68,24 @@ export function SiteSelector({
         <label className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
           {trans["dashboard:site_id"]}:
         </label>
-        {loading ? (
-          <Select disabled value="">
-            <SelectTrigger className="h-9 w-full sm:w-48 bg-background">
-              <SelectValue placeholder="Loading..." />
-            </SelectTrigger>
-          </Select>
-        ) : (
-          <Select
-            value={siteId}
-            onValueChange={(val) => {
-              setSiteId(val);
-              handleApply(val, range);
-            }}
-          >
-            <SelectTrigger className="h-9 w-full sm:w-48 bg-background">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {sites.map((s) => (
-                <SelectItem key={s.site_id} value={s.site_id}>
-                  {s.name || s.site_id}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+        <Select
+          value={siteId}
+          onValueChange={(val) => {
+            setSiteId(val);
+            handleApply(val, range);
+          }}
+        >
+          <SelectTrigger className="h-9 w-full sm:w-48 bg-background">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {sites.map((s) => (
+              <SelectItem key={s.site_id} value={s.site_id}>
+                {s.name || s.site_id}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex items-center gap-2">
@@ -158,7 +113,7 @@ export function SiteSelector({
       <Button
         type="submit"
         size="sm"
-        disabled={isPending || !siteId.trim() || loading}
+        disabled={isPending || !siteId.trim()}
         className="h-9 px-4 cursor-pointer"
       >
         {isPending ? "..." : trans["common:apply"]}

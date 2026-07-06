@@ -29,8 +29,8 @@
   "metrics:uv": "UV",
   "dashboard:url": "URL",
   "dashboard:page_title": "Title",
-  "common:status_offline": "Connection Error: Cannot connect to the Go API backend on localhost:8081.",
-  "common:status_offline_desc": "Please make sure your backend services are running. You can start them using: `go run cmd/collector/main.go`, `go run cmd/worker/main.go`, and `go run cmd/api/main.go`.",
+  "common:status_offline": "Connection Error: Cannot connect to the Go API backend.",
+  "common:status_offline_desc": "Please make sure your backend services are running.",
   "common:refresh": "Refresh",
   "dashboard:direct_none": "Direct / None",
   "common:loading": "Loading metrics...",
@@ -191,5 +191,10 @@
   "dashboard:custom_events": "Custom Events",
   "dashboard:event_name": "Event",
   "dashboard:event_count": "Count",
-  "dashboard:no_custom_events": "No custom events in this range"
+  "dashboard:no_custom_events": "No custom events in this range",
+  "dashboard:no_sites_title_admin": "Welcome to Chiyo Analytics",
+  "dashboard:no_sites_desc_admin": "To start collecting analytics, please register your first website.",
+  "dashboard:no_sites_btn_admin": "Create First Site",
+  "dashboard:no_sites_title_user": "No Sites Authorized",
+  "dashboard:no_sites_desc_user": "You do not have access to any sites. Please contact your administrator for permission."
 }

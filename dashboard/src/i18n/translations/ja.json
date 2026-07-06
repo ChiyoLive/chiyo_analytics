@@ -29,8 +29,8 @@
   "metrics:uv": "UV",
   "dashboard:url": "ページ URL",
   "dashboard:page_title": "ページタイトル",
-  "common:status_offline": "接続エラー: localhost:8081 の Go API バックエンドに接続できません。",
-  "common:status_offline_desc": "バックエンドサービスが起動しているか確認してください。起動コマンド: `go run cmd/collector/main.go`、`go run cmd/worker/main.go`、および `go run cmd/api/main.go`。",
+  "common:status_offline": "接続エラー: Go API バックエンドに接続できません。",
+  "common:status_offline_desc": "バックエンドサービスが起動しているか確認してください。",
   "common:refresh": "更新",
   "dashboard:direct_none": "直接アクセス / なし",
   "common:loading": "指標を読み込んでいます...",
@@ -191,5 +191,10 @@
   "dashboard:custom_events": "カスタムイベント",
   "dashboard:event_name": "イベント",
   "dashboard:event_count": "回数",
-  "dashboard:no_custom_events": "この期間内にカスタムイベントはありません"
+  "dashboard:no_custom_events": "この期間内にカスタムイベントはありません",
+  "dashboard:no_sites_title_admin": "Chiyo Analytics へようこそ",
+  "dashboard:no_sites_desc_admin": "分析の収集を開始するには、最初のウェブサイトを登録してください。",
+  "dashboard:no_sites_btn_admin": "最初のサイトを作成",
+  "dashboard:no_sites_title_user": "アクセス可能なサイトがありません",
+  "dashboard:no_sites_desc_user": "サイトへのアクセス権限がありません。管理者に権限の割り当てを依頼してください。"
 }

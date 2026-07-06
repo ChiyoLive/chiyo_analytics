@@ -849,7 +849,7 @@ A Next.js dashboard utilizing `shadcn/ui` and `recharts` is included under the `
 
 Open `http://localhost:8079` in your browser.
 The dashboard supports language selection (English, Simplified Chinese, Japanese) and Light/Dark themes. User Management modules, all analytics components (including overview cards, top pages, traffic sources, UTM campaigns, devices breakdown, the custom events card listing non-pageview event counts by name, and the Visitor Trends time-series charts displaying pageviews and visitors), and real-time sidebar details use strongly-typed localization translation (`trans`) properties under precise TypeScript types (e.g., `UsersTrans`) to eliminate broad, generic types and ensure consistent localization.
-Dashboard API calls use client-side JWT authentication with automatic access-token refresh; the request that detects an expired token retries immediately after refresh, while concurrent requests wait for the same refresh result.
+Dashboard API calls use client-side JWT authentication with automatic access-token refresh; the request that detects an expired token retries immediately after refresh, while concurrent requests wait for the same refresh result. On initial load or when no valid site ID is selected (e.g., defaulting to `"NO_SITE_SELECTED"` or manually inputting an unauthorized site ID), `DashboardClient` pre-fetches the user's authorized sites from `/api/v1/auth/me` and automatically redirects the client to their first available site, which avoids 403 API errors and ensures smooth site navigation.
 
 ### Query API Endpoints
 

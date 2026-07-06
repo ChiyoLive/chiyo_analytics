@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fetchWithAuth, getAccessToken } from "@/lib/auth";
+import { fetchWithAuth, getAccessToken, clearTokens, getRefreshToken } from "@/lib/auth";
 import { calculateTimeRange, denvPublic } from "@/lib/api";
 import { SiteSelector } from "@/components/site-selector";
 import { DashboardCharts } from "@/components/dashboard-charts";
@@ -14,8 +14,23 @@ import { TrafficSourcesCard } from "./traffic-sources-card";
 import { UTMCampaignsCard } from "./utm-campaigns-card";
 import { DevicesBreakdownCard } from "./devices-breakdown-card";
 import { CustomEventsCard } from "./custom-events-card";
-import { Loader2 } from "lucide-react";
+import { Loader2, PlusCircle, ShieldAlert, LogOut } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { DashboardClientTrans } from "./page";
+export type { DashboardClientTrans };
+
+export type SiteInfo = {
+  site_id: string;
+  name: string;
+};
 
 export type DashboardClientProps = {
   lang: string;
@@ -95,6 +110,9 @@ export function DashboardClient({
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [sites, setSites] = useState<SiteInfo[] | undefined>(undefined);
+  const [loadingSites, setLoadingSites] = useState(true);
+  const [isSuperuser, setIsSuperuser] = useState<boolean>(false);
 
   // States for dashboard metrics
   const [overview, setOverview] = useState<OverviewData | undefined>(undefined);
@@ -106,19 +124,72 @@ export function DashboardClient({
   );
   const [events, setEvents] = useState<EventItem[] | undefined>(undefined);
 
-  // 1. Authenticate check on mount
+  // 1. Authenticate check and site list fetch on mount
   useEffect(() => {
     const token = getAccessToken();
     if (!token) {
       router.push(`/${lang}/login`);
-    } else {
-      setIsAuthenticated(true); // eslint-disable-line react-hooks/set-state-in-effect
+      return;
     }
+
+    setIsAuthenticated(true); // eslint-disable-line react-hooks/set-state-in-effect
+
+    let isMounted = true;
+    const fetchSites = async () => {
+      try {
+        const res = await fetchWithAuth(
+          `${await denvPublic.API_URL()}/api/v1/auth/me`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            const list = (data.sites || []) as SiteInfo[];
+            setSites(list);
+            setIsSuperuser(!!data.is_superuser);
+          }
+        } else {
+          if (isMounted) {
+            setError(true);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch user sites:", err);
+        if (isMounted) {
+          setError(true);
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingSites(false);
+        }
+      }
+    };
+
+    fetchSites();
+
+    return () => {
+      isMounted = false;
+    };
   }, [lang, router]);
 
-  // 2. Fetch metrics whenever siteId, range, or authentication status changes
+  // 2. Redirect and Fetch metrics whenever siteId, range, or authentication status changes
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !sites) return;
+
+    // Check if the current siteId is authorized for this user
+    const isAuthorized = sites.some((s) => s.site_id === siteId);
+
+    if (!isAuthorized) {
+      if (sites.length > 0) {
+        const firstSiteId = sites[0].site_id;
+        const params = new URLSearchParams(window.location.search);
+        params.set("site_id", firstSiteId);
+        params.set("range", range);
+        router.push(`?${params.toString()}`);
+      } else {
+        setLoading(false); // eslint-disable-line react-hooks/set-state-in-effect
+      }
+      return;
+    }
 
     const fetchData = async () => {
       setLoading(true);
@@ -202,13 +273,99 @@ export function DashboardClient({
     };
 
     fetchData();
-  }, [siteId, range, isAuthenticated]);
+  }, [siteId, range, isAuthenticated, sites, router]);
 
-  if (isAuthenticated === undefined || (loading && !overview)) {
+  if (isAuthenticated === undefined || loadingSites || (loading && !overview)) {
     return (
       <div className="flex h-[80vh] w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  const hasNoSites = sites && sites.length === 0;
+
+  if (hasNoSites) {
+    const handleLogout = async () => {
+      const refreshToken = getRefreshToken();
+      if (refreshToken) {
+        try {
+          await fetch(`${await denvPublic.API_URL()}/api/v1/auth/logout`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          });
+        } catch (err) {
+          console.error("Failed to revoke session on server:", err);
+        }
+      }
+      clearTokens();
+      router.push(`/${lang}/login`);
+    };
+
+    if (isSuperuser) {
+      return (
+        <main className="container mx-auto px-4 py-16 flex-1 flex items-center justify-center min-h-[60vh]">
+          <Card className="max-w-md w-full border border-border bg-card shadow-lg rounded-xl">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
+                <PlusCircle className="h-6 w-6" />
+              </div>
+              <CardTitle className="text-2xl font-bold tracking-tight">
+                {trans["dashboard:no_sites_title_admin"]}
+              </CardTitle>
+              <CardDescription className="text-muted-foreground mt-2 text-sm leading-relaxed">
+                {trans["dashboard:no_sites_desc_admin"]}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 pt-4">
+              <Button asChild className="w-full h-10 font-medium cursor-pointer">
+                <Link href={`/${lang}/sites`}>
+                  {trans["dashboard:no_sites_btn_admin"]}
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="w-full h-10 font-medium cursor-pointer"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                {trans["nav:sign_out"]}
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      );
+    }
+
+    return (
+      <main className="container mx-auto px-4 py-16 flex-1 flex items-center justify-center min-h-[60vh]">
+        <Card className="max-w-md w-full border border-destructive/20 bg-card shadow-lg rounded-xl">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive mb-4">
+              <ShieldAlert className="h-6 w-6" />
+            </div>
+            <CardTitle className="text-2xl font-bold tracking-tight">
+              {trans["dashboard:no_sites_title_user"]}
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-2 text-sm leading-relaxed">
+              {trans["dashboard:no_sites_desc_user"]}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="w-full h-10 font-medium cursor-pointer"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              {trans["nav:sign_out"]}
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
     );
   }
 
@@ -239,6 +396,7 @@ export function DashboardClient({
           initialSiteId={siteId}
           initialRange={range}
           trans={trans}
+          sites={sites || []}
         />
       </div>
 

@@ -74,3 +74,5 @@ When data outgrows a single ClickHouse node, the events table will be migrated t
     - [ ] 单机的瓶颈往往卡在 ClickHouse 的 I/O 或者 Redis 的内存上。如果是真正的大流量，采集端（Collector）必须能做到多节点无状态横向扩容（配合 HPA），并与存储端集群解耦。目前单机部署模式会让一些真正的海量流量企业持观望态度。
 - [ ] 高流量下的“隐形炸弹”：ClickHouse TTL 缺失
     - [ ] 如果真的跑在大流量生产环境，ClickHouse 的硬盘占用速度会非常恐怖。一旦没有自动 TTL 机制，服务器很容易在几个月后因为磁盘爆满而导致 ClickHouse 挂掉。在 v2 之前，用户不得不自己写复杂的 crontab 脚本去手工 ALTER TABLE DROP PARTITION。
+- [ ] dashbaord 的 UI 优化，现在权限后端做了隔离，但前端没有根据权限变更 UI。
+    - [ ] realtime sidebar 在没有权限的时候不应该渲染

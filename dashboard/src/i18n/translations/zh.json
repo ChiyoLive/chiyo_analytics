@@ -29,8 +29,8 @@
   "metrics:uv": "UV",
   "dashboard:url": "页面 URL",
   "dashboard:page_title": "页面标题",
-  "common:status_offline": "连接失败：无法连接到位于 localhost:8081 的 Go API 后端服务。",
-  "common:status_offline_desc": "请确认您的后端服务已启动。可使用以下命令运行：`go run cmd/collector/main.go`、`go run cmd/worker/main.go` 以及 `go run cmd/api/main.go`。",
+  "common:status_offline": "连接失败：无法连接到 Go API 后端服务。",
+  "common:status_offline_desc": "请确认您的后端服务已启动。",
   "common:refresh": "刷新",
   "dashboard:direct_none": "直接访问 / 无",
   "common:loading": "正在加载指标数据...",
@@ -191,5 +191,10 @@
   "dashboard:custom_events": "自定义事件",
   "dashboard:event_name": "事件",
   "dashboard:event_count": "次数",
-  "dashboard:no_custom_events": "此时间范围内无自定义事件"
+  "dashboard:no_custom_events": "此时间范围内无自定义事件",
+  "dashboard:no_sites_title_admin": "欢迎使用 Chiyo Analytics",
+  "dashboard:no_sites_desc_admin": "要开始收集分析数据，请注册您的第一个网站。",
+  "dashboard:no_sites_btn_admin": "创建首个站点",
+  "dashboard:no_sites_title_user": "无权访问任何站点",
+  "dashboard:no_sites_desc_user": "您没有任何站点的访问权限，请联系管理员为您分配权限。"
 }

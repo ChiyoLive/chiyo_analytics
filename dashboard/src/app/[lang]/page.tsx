@@ -91,6 +91,12 @@ function trans(lang: string) {
     "dashboard:event_name",
     "dashboard:event_count",
     "dashboard:no_custom_events",
+    "dashboard:no_sites_title_admin",
+    "dashboard:no_sites_desc_admin",
+    "dashboard:no_sites_btn_admin",
+    "dashboard:no_sites_title_user",
+    "dashboard:no_sites_desc_user",
+    "nav:sign_out",
   ] as const);
 }
 export type DashboardClientTrans = Awaited<ReturnType<typeof trans>>;
