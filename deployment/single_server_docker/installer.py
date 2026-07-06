@@ -58,9 +58,17 @@ DEFAULT_INSTALL_DIR = Path.home() / ".cyanly"
 
 
 def do_config():
-    target_dir = Path("./cyanly-preinstall")
+    config_arg = get_config_arg()
+    if config_arg is not None:
+        toml_path = config_arg
+        target_dir = toml_path.parent
+    else:
+        target_dir = Path("./cyanly-preinstall")
+        toml_path = target_dir / "chiyo_analytics.toml"
+
     console.print(f"[cyan]{t('msg_init_config_dir')} {target_dir} ...[/cyan]")
-    target_dir.mkdir(exist_ok=True)
+    if target_dir and str(target_dir) not in (".", ""):
+        target_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         toml_content = pkgutil.get_data("single_server_docker", "chiyo_analytics.toml")
@@ -71,7 +79,6 @@ def do_config():
         console.print(f"[bold red]{t('err_read_toml_template')}: {e}[/bold red]")
         sys.exit(1)
 
-    toml_path = target_dir / "chiyo_analytics.toml"
     if not confirm_overwrite([toml_path]):
         console.print(f"[yellow]{t('msg_aborted')}[/yellow]")
         sys.exit(1)
@@ -159,7 +166,11 @@ def set_mapping_dependency(service, dependency: str, condition: str):
     if not isinstance(depends_on, dict):
         depends_on = CommentedMap()
         service["depends_on"] = depends_on
-    depends_on[dependency] = CommentedMap({"condition": condition})
+    
+    if dependency in depends_on and isinstance(depends_on[dependency], dict):
+        depends_on[dependency]["condition"] = condition
+    else:
+        depends_on[dependency] = CommentedMap({"condition": condition})
 
 
 def remove_mapping_dependency(service, dependency: str):
@@ -172,7 +183,19 @@ def remove_mapping_dependency(service, dependency: str):
 
 def set_ports(service, ports):
     if ports:
-        service["ports"] = CommentedSeq(ports)
+        if "ports" in service:
+            service["ports"] = CommentedSeq(ports)
+        else:
+            # Insert at a sensible position instead of appending after
+            # 'restart: always'.  Walk a preference list and place 'ports'
+            # right after the first key that already exists.
+            keys = list(service.keys())
+            insert_idx = len(keys)
+            for after_key in ("command", "container_name", "image"):
+                if after_key in keys:
+                    insert_idx = keys.index(after_key) + 1
+                    break
+            service.insert(insert_idx, "ports", CommentedSeq(ports))
     else:
         service.pop("ports", None)
 
@@ -250,6 +273,17 @@ def get_dest_arg() -> Path | None:
     return Path(sys.argv[idx + 1]).expanduser()
 
 
+def get_config_arg() -> Path | None:
+    for flag in ("--config", "-c"):
+        if flag in sys.argv:
+            idx = sys.argv.index(flag)
+            if idx + 1 >= len(sys.argv):
+                console.print(f"[bold red]{flag} requires a path[/bold red]")
+                sys.exit(1)
+            return Path(sys.argv[idx + 1]).expanduser()
+    return None
+
+
 def resolve_install_dir() -> Path:
     dest_arg = get_dest_arg()
     if dest_arg is not None:
@@ -297,8 +331,12 @@ def confirm_overwrite(paths: list[Path]) -> bool:
 
 
 def load_install_config():
-    preinstall_dir = Path("./cyanly-preinstall")
-    toml_path = preinstall_dir / "chiyo_analytics.toml"
+    config_arg = get_config_arg()
+    if config_arg is not None:
+        toml_path = config_arg
+    else:
+        preinstall_dir = Path("./cyanly-preinstall")
+        toml_path = preinstall_dir / "chiyo_analytics.toml"
 
     if not toml_path.exists():
         console.print(f"[bold red]{t('err_no_config')} {toml_path}[/bold red]")
@@ -374,61 +412,50 @@ def render_compose(config):
     services = compose["services"]
     volumes = compose.setdefault("volumes", CommentedMap())
 
-    pg_dsn = (
-        f"postgres://{pg_user}:{pg_password}@{pg_addr}/{pg_db}"
-        f"?sslmode={pg_sslmode}"
-    )
-    ch_dsn = f"clickhouse://{ch_user}:{ch_password}@{ch_addr}/{ch_db}"
+    if pg_user != "cyanly" or pg_db != "cyanly" or pg_sslmode != "disable" or pg_addr != "cyanly-postgres:5432":
+        pg_dsn = f"postgres://${{DB_USERNAME:-cyanly}}:${{DB_PASSWORD:-cyanly-password-change-me}}@{pg_addr}/{pg_db}?sslmode={pg_sslmode}"
+        set_command_arg(services["cyanly-migrate-pg"], "--dsn", pg_dsn)
 
-    set_command_arg(services["cyanly-migrate-pg"], "--dsn", pg_dsn)
-    set_command_arg(services["cyanly-migrate-ch"], "--dsn", ch_dsn)
-    set_command_arg(services["cyanly-migrate-ch"], "--var", f"table={ch_table}")
-    replace_env_value(services["cyanly-postgres"]["environment"], "POSTGRES_DB", pg_db)
-    replace_env_value(
-        services["cyanly-postgres"]["environment"], "POSTGRES_USER", pg_user
-    )
-    replace_env_value(
-        services["cyanly-clickhouse"]["environment"], "CLICKHOUSE_DB", ch_db
-    )
-    replace_env_value(
-        services["cyanly-clickhouse"]["environment"], "CLICKHOUSE_USER", ch_user
-    )
+    if ch_user != "default" or ch_db != "cyanly" or ch_addr != "cyanly-clickhouse:9000":
+        ch_dsn = f"clickhouse://${{CH_USERNAME:-default}}:${{CH_PASSWORD:-cyanly-password-change-me}}@{ch_addr}/{ch_db}"
+        set_command_arg(services["cyanly-migrate-ch"], "--dsn", ch_dsn)
 
-    set_ports(services["cyanly-collector"], [f"{collector_port}:{collector_port}"])
-    set_ports(services["cyanly-api"], [f"{api_port}:{api_port}"])
-    set_ports(services["cyanly-worker"], [f"{worker_port}:{worker_port}"])
-    set_ports(services["cyanly-dashboard"], [f"{dashboard_port}:{dashboard_port}"])
+    if ch_table != "cyanly.events":
+        set_command_arg(services["cyanly-migrate-ch"], "--var", f"table={ch_table}")
+
+    if pg_db != "cyanly":
+        replace_env_value(services["cyanly-postgres"]["environment"], "POSTGRES_DB", pg_db)
+    if ch_db != "cyanly":
+        replace_env_value(services["cyanly-clickhouse"]["environment"], "CLICKHOUSE_DB", ch_db)
 
     if pg_external:
         services.pop("cyanly-postgres", None)
         services["cyanly-migrate-pg"].pop("depends_on", None)
     else:
-        set_ports(
-            services["cyanly-postgres"],
-            [f"{pg_host_port}:5432"] if pg_host_port > 0 else [],
-        )
-        set_single_volume(services["cyanly-postgres"], pg_volume, "/var/lib/postgresql")
-        set_mapping_dependency(
-            services["cyanly-migrate-pg"], "cyanly-postgres", "service_healthy"
-        )
+        if pg_host_port > 0:
+            set_ports(
+                services["cyanly-postgres"],
+                [f"{pg_host_port}:5432"],
+            )
+        if pg_volume != "pg-data":
+            set_single_volume(services["cyanly-postgres"], pg_volume, "/var/lib/postgresql")
     set_named_volume(volumes, "pg-data", pg_volume, pg_external)
 
     if ch_external:
         services.pop("cyanly-clickhouse", None)
         services["cyanly-migrate-ch"].pop("depends_on", None)
     else:
-        set_ports(
-            services["cyanly-clickhouse"],
-            build_port_bindings(
-                [(ch_native_host_port, 9000), (ch_http_host_port, 8123)]
-            ),
-        )
-        set_single_volume(
-            services["cyanly-clickhouse"], ch_volume, "/var/lib/clickhouse"
-        )
-        set_mapping_dependency(
-            services["cyanly-migrate-ch"], "cyanly-clickhouse", "service_healthy"
-        )
+        if ch_native_host_port > 0 or ch_http_host_port > 0:
+            set_ports(
+                services["cyanly-clickhouse"],
+                build_port_bindings(
+                    [(ch_native_host_port, 9000), (ch_http_host_port, 8123)]
+                ),
+            )
+        if ch_volume != "clickhouse-data":
+            set_single_volume(
+                services["cyanly-clickhouse"], ch_volume, "/var/lib/clickhouse"
+            )
     set_named_volume(volumes, "clickhouse-data", ch_volume, ch_external)
 
     if redis_external:
@@ -436,17 +463,13 @@ def render_compose(config):
         remove_mapping_dependency(services["cyanly-collector"], "cyanly-redis")
         remove_mapping_dependency(services["cyanly-worker"], "cyanly-redis")
     else:
-        set_ports(
-            services["cyanly-redis"],
-            [f"{redis_host_port}:6379"] if redis_host_port > 0 else [],
-        )
-        set_single_volume(services["cyanly-redis"], redis_volume, "/data")
-        set_mapping_dependency(
-            services["cyanly-collector"], "cyanly-redis", "service_healthy"
-        )
-        set_mapping_dependency(
-            services["cyanly-worker"], "cyanly-redis", "service_healthy"
-        )
+        if redis_host_port > 0:
+            set_ports(
+                services["cyanly-redis"],
+                [f"{redis_host_port}:6379"],
+            )
+        if redis_volume != "redis-data":
+            set_single_volume(services["cyanly-redis"], redis_volume, "/data")
     set_named_volume(volumes, "redis-data", redis_volume, redis_external)
 
     if not volumes:
@@ -456,7 +479,17 @@ def render_compose(config):
     yaml.dump(compose, output)
     rendered = output.getvalue()
 
-    env_content = f"DB_PASSWORD={pg_password}\nCH_PASSWORD={ch_password}\nANALYTICS_API_URL={analytics_api_url}\n"
+    env_content = (
+        f"DB_USERNAME={pg_user}\n"
+        f"DB_PASSWORD={pg_password}\n"
+        f"CH_USERNAME={ch_user}\n"
+        f"CH_PASSWORD={ch_password}\n"
+        f"ANALYTICS_API_URL={analytics_api_url}\n"
+        f"COLLECTOR_PORT={collector_port}\n"
+        f"API_PORT={api_port}\n"
+        f"WORKER_PORT={worker_port}\n"
+        f"DASHBOARD_PORT={dashboard_port}\n"
+    )
     return rendered, env_content
 
 

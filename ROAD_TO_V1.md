@@ -12,10 +12,10 @@ This document outlines the roadmap and missing requirements before Chiyo Analyti
 - [x] **Dead Letter Queue (DLQ)**: Handle corrupt or unparseable event payloads by pushing them to a dedicated DLQ instead of discarding them.
 
 ### 2. Collector Protection & Security
-- [x] **Rate Limiting**: N/A (Managed by reverse proxy like Nginx/Caddy; examples added to `examples/hosting_server`)
-- [x] **Payload Size Limit**: N/A (Managed by reverse proxy like Nginx/Caddy; examples added to `examples/hosting_server`)
+- [x] **Rate Limiting**: N/A (Managed by reverse proxy like Nginx/Caddy; reference configs in `deployment/PROJECT.md`)
+- [x] **Payload Size Limit**: N/A (Managed by reverse proxy like Nginx/Caddy; reference configs in `deployment/PROJECT.md`)
 - [x] **Dynamic Site ID Whitelisting**: Replace the static configuration list (`allowed_site_ids`) with a dynamic check querying Redis (with fallback to database), allowing new sites to be registered without restarting backend services.
-- [x] **Session-Bound Secure Tokens (Ticket System)**: Expose `/api/v1/tokens` endpoint in the Collector for application servers to request short-lived session tokens, protecting `/collect` against client-side spoofing.
+- [x] **Session-Bound Secure Tokens**: Sites can configure a `jwks_url` to verify asymmetric JWT tokens on `/collect`, protecting against client-side spoofing.
 
 ### 3. ClickHouse Storage Optimization & Lifecycle
 - [x] **Data Retention Policy (TTL)**: N/A (Deferred to v2). Implement automatic data cleaning (e.g., delete events older than 90 days / 1 year) using ClickHouse's native table TTL via a configurable `retention_days` parameter.

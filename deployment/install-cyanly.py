@@ -10,7 +10,12 @@ console = Console()
 def print_help():
     console.print(f"\n[bold cyan]Cyanly (Chiyo Analytics) {t('cli_title')}[/bold cyan]")
     console.print("---------------------------------------")
-    console.print("[bold]Usage:[/bold] python3 install-cyanly.pyz [command]\n")
+    console.print("[bold]Usage:[/bold] python3 install-cyanly.pyz [command] [options]\n")
+    console.print("[bold]Options:[/bold]")
+    console.print("  -c, --config PATH  Path to configuration TOML file")
+    console.print("  --dest PATH        Destination directory for installation")
+    console.print("  --lang LANG        Set language (en, ja, zh)")
+    console.print("  -y, --yes          Automatically answer yes to prompts\n")
     console.print("[bold]Commands:[/bold]")
     console.print(f"  [green]config[/green]     {t('help_config')}")
     console.print(f"  [green]gen[/green]        {t('help_gen')}")
@@ -28,7 +33,7 @@ def main():
         if skip_next:
             skip_next = False
             continue
-        if arg in ("--lang", "--dest"):
+        if arg in ("--lang", "--dest", "--config", "-c"):
             skip_next = True
             continue
         if not arg.startswith("-"):

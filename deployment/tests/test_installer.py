@@ -174,11 +174,11 @@ def test_render_compose_removes_external_services_and_dependencies(
     assert "cyanly-redis" not in services["cyanly-worker"]["depends_on"]
     assert "volumes" not in compose
     assert (
-        "postgres://cyanly:pg-secret@rds.example.com:5432/cyanly?sslmode=require"
+        "postgres://${DB_USERNAME:-cyanly}:${DB_PASSWORD:-cyanly-password-change-me}@rds.example.com:5432/cyanly?sslmode=require"
         in services["cyanly-migrate-pg"]["command"]
     )
     assert (
-        "clickhouse://default:ch-secret@clickhouse.example.com:9000/cyanly"
+        "clickhouse://${CH_USERNAME:-default}:${CH_PASSWORD:-cyanly-password-change-me}@clickhouse.example.com:9000/cyanly"
         in services["cyanly-migrate-ch"]["command"]
     )
 
@@ -227,11 +227,11 @@ def test_render_compose_preserves_user_encoded_password(isolated_installer):
     compose = load_yaml(rendered)
 
     assert (
-        "postgres://cyanly:p%40ss%3Aword@cyanly-postgres:5432/cyanly?sslmode=disable"
+        "postgres://${DB_USERNAME:-cyanly}:${DB_PASSWORD:-cyanly-password-change-me}@cyanly-postgres:5432/cyanly?sslmode=disable"
         in compose["services"]["cyanly-migrate-pg"]["command"]
     )
     assert (
-        "clickhouse://default:ch%23secret@cyanly-clickhouse:9000/cyanly"
+        "clickhouse://${CH_USERNAME:-default}:${CH_PASSWORD:-cyanly-password-change-me}@cyanly-clickhouse:9000/cyanly"
         in compose["services"]["cyanly-migrate-ch"]["command"]
     )
     assert "DB_PASSWORD=p%40ss%3Aword" in env_content
@@ -378,3 +378,84 @@ def test_install_cli_dispatches_noninteractive_commands(monkeypatch):
         module.main()
 
     assert calls == ["gen", "up", "install"]
+
+
+def test_config_with_custom_path(isolated_installer, monkeypatch):
+    env = isolated_installer
+    custom_toml = env.work_dir / "custom" / "my_config.toml"
+    monkeypatch.setattr(
+        sys, "argv", ["install-cyanly.pyz", "config", "--config", str(custom_toml), "-y"]
+    )
+
+    env.installer.do_config()
+
+    assert custom_toml.exists()
+    assert "[postgres]" in custom_toml.read_text(encoding="utf-8")
+
+
+def test_gen_with_custom_path(isolated_installer, monkeypatch):
+    env = isolated_installer
+    custom_toml = env.work_dir / "custom" / "my_config.toml"
+    custom_toml.parent.mkdir(parents=True, exist_ok=True)
+    custom_toml.write_text(
+        """
+        [postgres]
+        addr = "db.example.com:5432"
+        database = "cyanly"
+        username = "cyanly"
+        password = "custom-password"
+        sslmode = "disable"
+
+        [clickhouse]
+        addr = "cyanly-clickhouse:9000"
+        database = "cyanly"
+        username = "default"
+        password = "custom-password"
+        table = "cyanly.events"
+
+        [redis]
+        addr = "cyanly-redis:6379"
+        password = ""
+        db = 0
+        key = "cyanly:events"
+        """,
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "install-cyanly.pyz",
+            "gen",
+            "--config",
+            str(custom_toml),
+            "--dest",
+            str(env.install_dir),
+            "-y",
+        ],
+    )
+
+    env.installer.do_gen()
+
+    assert (env.install_dir / "chiyo_analytics.toml").read_text(
+        encoding="utf-8"
+    ) == custom_toml.read_text(encoding="utf-8")
+    assert "DB_PASSWORD=custom-password" in (env.install_dir / ".env").read_text(encoding="utf-8")
+
+
+def test_get_config_arg_with_c_flag(isolated_installer, monkeypatch):
+    env = isolated_installer
+    custom_toml = env.work_dir / "custom" / "my_config.toml"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "install-cyanly.pyz",
+            "gen",
+            "-c",
+            str(custom_toml),
+        ],
+    )
+    assert env.installer.get_config_arg() == custom_toml
+

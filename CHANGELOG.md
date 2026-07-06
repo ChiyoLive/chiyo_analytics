@@ -1,3 +1,10 @@
+# v1.1.1
+## new
+- install-cyanly.pyz 新增 [--config path/to/chiyo_analytics.toml] 选项
+
+## fix
+- 修复了 install-cyanly.pyz 生成的 docker-compose.yaml 丢失格式的问题
+
 # v1.1.0
 ## new
 - chiyo_analytics.toml 新增配置项：

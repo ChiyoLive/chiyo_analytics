@@ -8,15 +8,17 @@
     cyanly-postgres:
       image: postgres:18-alpine
       container_name: cyanly-postgres
+      ports:
+      - 5432:5432
       environment:
         POSTGRES_DB: cyanly
-        POSTGRES_USER: cyanly
+        POSTGRES_USER: ${DB_USERNAME:-cyanly}
         POSTGRES_PASSWORD: ${DB_PASSWORD:-cyanly-password-change-me}
       volumes:
       - pg-data:/var/lib/postgresql
       healthcheck:
         # pg_isready 检查 PostgreSQL 数据库连接是否就绪
-        test: ["CMD-SHELL", "pg_isready -U cyanly -d cyanly"]
+        test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-cyanly} -d cyanly"]
         interval: 2s
         timeout: 3s
         retries: 15
@@ -25,12 +27,12 @@
     # =========================================================================
     # 2. Redis (高并发写入缓存队列)
     # =========================================================================
-      ports:
-      - 5432:5432
     cyanly-redis:
       image: redis:8-alpine
       container_name: cyanly-redis
       command: ["redis-server", "--appendonly", "yes"]
+      ports:
+      - 6379:6379
       volumes:
       - redis-data:/data
       healthcheck:
@@ -44,14 +46,15 @@
     # =========================================================================
     # 3. ClickHouse (分析型列式数据库)
     # =========================================================================
-      ports:
-      - 6379:6379
     cyanly-clickhouse:
       image: clickhouse:lts
       container_name: cyanly-clickhouse
+      ports:
+      - 9000:9000
+      - 8123:8123
       environment:
         CLICKHOUSE_DB: cyanly
-        CLICKHOUSE_USER: default
+        CLICKHOUSE_USER: ${CH_USERNAME:-default}
         CLICKHOUSE_PASSWORD: ${CH_PASSWORD:-cyanly-password-change-me}
         CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
       volumes:
@@ -71,34 +74,40 @@
     # =========================================================================
     # 4. PostgreSQL 结构迁移 (在 PG 状态为 Healthy 时才执行)
     # =========================================================================
-      ports:
-      - 9000:9000
-      - 8123:8123
     cyanly-migrate-pg:
       image: ghcr.io/chiyolive/cyanly-backend:latest
       container_name: cyanly-migrate-pg
-      command: ["cy_migrate", "--driver", "postgres", "--dsn", "postgres://cyanly:cyanly-password-change-me@cyanly-postgres:5432/cyanly?sslmode=disable",
+      command: ["cy_migrate", "--driver", "postgres", "--dsn", "postgres://${DB_USERNAME:-cyanly}:${DB_PASSWORD:-cyanly-password-change-me}@cyanly-postgres:5432/cyanly?sslmode=disable",
         "--migrations", "/app/migrations/pg_metadata", "apply"]
       depends_on:
         cyanly-postgres:
           condition: service_healthy
+  
+    # =========================================================================
+    # 5. ClickHouse 结构迁移 (在 CH 状态为 Healthy 时才执行)
+    # =========================================================================
     cyanly-migrate-ch:
       image: ghcr.io/chiyolive/cyanly-backend:latest
       container_name: cyanly-migrate-ch
-      command: ["cy_migrate", "--driver", "clickhouse", "--dsn", "clickhouse://default:cyanly-password-change-me@cyanly-clickhouse:9000/cyanly",
+      command: ["cy_migrate", "--driver", "clickhouse", "--dsn", "clickhouse://${CH_USERNAME:-default}:${CH_PASSWORD:-cyanly-password-change-me}@cyanly-clickhouse:9000/cyanly",
         "--migrations", "/app/migrations/ch_analytics", "--var", "table=cyanly.events",
         "apply"]
       depends_on:
         cyanly-clickhouse:
           condition: service_healthy
+  
+    # =========================================================================
+    # 6. Go Collector (埋点收集服务)
+    # =========================================================================
     cyanly-collector:
       image: ghcr.io/chiyolive/cyanly-backend:latest
       container_name: cyanly-collector
       command: ["collector", "-config", "/app/chiyo_analytics.toml"]
       ports:
-      - 8080:8080
+      - "${COLLECTOR_PORT:-8080}:${COLLECTOR_PORT:-8080}"
       volumes:
       - ./chiyo_analytics.toml:/app/chiyo_analytics.toml
+      - ./geoip:/app/geoip
       depends_on:
         cyanly-migrate-pg:
           condition: service_completed_successfully
@@ -114,7 +123,7 @@
       container_name: cyanly-worker
       command: ["worker", "-config", "/app/chiyo_analytics.toml"]
       ports:
-      - 8082:8082
+      - "${WORKER_PORT:-8082}:${WORKER_PORT:-8082}"
       volumes:
       - ./chiyo_analytics.toml:/app/chiyo_analytics.toml
       - ./geoip:/app/geoip
@@ -147,7 +156,7 @@
       container_name: cyanly-api
       command: ["api", "-config", "/app/chiyo_analytics.toml"]
       ports:
-      - 8081:8081
+      - "${API_PORT:-8081}:${API_PORT:-8081}"
       volumes:
       - ./chiyo_analytics.toml:/app/chiyo_analytics.toml
       depends_on:
@@ -164,7 +173,7 @@
       image: ghcr.io/chiyolive/cyanly-dashboard:latest
       container_name: cyanly-dashboard
       ports:
-      - 8079:8079
+      - "${DASHBOARD_PORT:-8079}:${DASHBOARD_PORT:-8079}"
       environment:
       - ANALYTICS_API_URL=${ANALYTICS_API_URL:-http://localhost:8081}
       depends_on:
@@ -180,9 +189,15 @@
 # ---
 # name: test_gen_generates_expected_files[env]
   '''
+  DB_USERNAME=cyanly
   DB_PASSWORD=cyanly-password-change-me
+  CH_USERNAME=default
   CH_PASSWORD=cyanly-password-change-me
   ANALYTICS_API_URL=http://localhost:8081
+  COLLECTOR_PORT=8080
+  API_PORT=8081
+  WORKER_PORT=8082
+  DASHBOARD_PORT=8079
   
   '''
 # ---

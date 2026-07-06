@@ -7,13 +7,13 @@ services:
     container_name: cyanly-postgres
     environment:
       POSTGRES_DB: cyanly
-      POSTGRES_USER: cyanly
+      POSTGRES_USER: ${DB_USERNAME:-cyanly}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-cyanly-password-change-me}
     volumes:
       - pg-data:/var/lib/postgresql
     healthcheck:
       # pg_isready 检查 PostgreSQL 数据库连接是否就绪
-      test: ["CMD-SHELL", "pg_isready -U cyanly -d cyanly"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-cyanly} -d cyanly"]
       interval: 2s
       timeout: 3s
       retries: 15
@@ -44,7 +44,7 @@ services:
     container_name: cyanly-clickhouse
     environment:
       CLICKHOUSE_DB: cyanly
-      CLICKHOUSE_USER: default
+      CLICKHOUSE_USER: ${CH_USERNAME:-default}
       CLICKHOUSE_PASSWORD: ${CH_PASSWORD:-cyanly-password-change-me}
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     volumes:
@@ -74,7 +74,7 @@ services:
         "--driver",
         "postgres",
         "--dsn",
-        "postgres://cyanly:${DB_PASSWORD:-cyanly-password-change-me}@cyanly-postgres:5432/cyanly?sslmode=disable",
+        "postgres://${DB_USERNAME:-cyanly}:${DB_PASSWORD:-cyanly-password-change-me}@cyanly-postgres:5432/cyanly?sslmode=disable",
         "--migrations",
         "/app/migrations/pg_metadata",
         "apply",
@@ -95,7 +95,7 @@ services:
         "--driver",
         "clickhouse",
         "--dsn",
-        "clickhouse://default:${CH_PASSWORD:-cyanly-password-change-me}@cyanly-clickhouse:9000/cyanly",
+        "clickhouse://${CH_USERNAME:-default}:${CH_PASSWORD:-cyanly-password-change-me}@cyanly-clickhouse:9000/cyanly",
         "--migrations",
         "/app/migrations/ch_analytics",
         "--var",
@@ -117,6 +117,7 @@ services:
       - "${COLLECTOR_PORT:-8080}:${COLLECTOR_PORT:-8080}"
     volumes:
       - ./chiyo_analytics.toml:/app/chiyo_analytics.toml
+      - ./geoip:/app/geoip
     depends_on:
       cyanly-migrate-pg:
         condition: service_completed_successfully

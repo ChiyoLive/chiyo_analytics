@@ -388,7 +388,7 @@ To protect the Collector and Query API from spam, spoofing, unauthorized reads, 
      - **MPA**: The script tag accepts `data-token-url="/api/cyanly-token"`, and the SDK fetches the token on load and maintains a background timer to refresh it proactively.
 
 4. **Reverse Proxy Rate & Size Limiting**:
-   - Reference configurations for **Nginx** and **Caddy** showing rate limiting (`limit_req`) and request payload limits are available in [examples/hosting_server/](./examples/hosting_server).
+   - Reference configurations for **Nginx** and **Caddy** with production-grade rate limiting, request payload limits, security headers, and routing rules are documented in [deployment/PROJECT.md](./deployment/PROJECT.md#-reverse-proxy-configuration-caddy--nginx).
 
 5. **Site-Bound IAM Policy Engine (Access Authorization)**:
    - Dashboard users are granted site-level access using JSONB-stored IAM policies on the `public.user_sites` table. The backend Policy Engine evaluates these statements dynamically:
@@ -711,16 +711,16 @@ Declarative event properties accept two forms, which may be combined:
 
 For production hosting on a single server, Chiyo Analytics provides a fully containerized deployment workflow utilizing pre-built GHCR Docker images and a Python-based installer script:
 
-1. Download and run the configuration wizard:
+1. Download and run the configuration wizard (you can optionally pass `--config path/to/chiyo_analytics.toml` or `-c path/to/chiyo_analytics.toml` to customize the output location):
    ```bash
    curl -sSL https://github.com/chiyolive/chiyo_analytics/releases/latest/download/install-cyanly.pyz -o install-cyanly.pyz
-   python3 install-cyanly.pyz config
+   python3 install-cyanly.pyz config [--config path/to/chiyo_analytics.toml]
    ```
-   This will prompt you for your preferred language and generate the `./cyanly-preinstall/` directory containing the configuration template `chiyo_analytics.toml`.
-2. Edit settings and database credentials in `./cyanly-preinstall/chiyo_analytics.toml`. For single-server Docker deployments, `[postgres.deploy.single_server_docker]`, `[clickhouse.deploy.single_server_docker]`, and `[redis.deploy.single_server_docker]` can mark a datastore as external or select a named volume/bind mount for internal datastores. Redis and PostgreSQL use `host_port` for optional host publishing; ClickHouse uses explicit `native_host_port` and `http_host_port` fields for its TCP and HTTP interfaces.
-3. Generate the installation files (creates `.env` and `docker-compose.yaml`, downloads GeoIP files to `~/.cyanly/geoip`, extracts the management script, and records the active install directory in `~/.cyanly_installed`):
+   By default, this will prompt you for your preferred language and generate the `./cyanly-preinstall/` directory containing the configuration template `chiyo_analytics.toml`.
+2. Edit settings and database credentials in the configuration file (`./cyanly-preinstall/chiyo_analytics.toml` or your custom config path). For single-server Docker deployments, `[postgres.deploy.single_server_docker]`, `[clickhouse.deploy.single_server_docker]`, and `[redis.deploy.single_server_docker]` can mark a datastore as external or select a named volume/bind mount for internal datastores. Redis and PostgreSQL use `host_port` for optional host publishing; ClickHouse uses explicit `native_host_port` and `http_host_port` fields for its TCP and HTTP interfaces.
+3. Generate the installation files (creates `.env` and `docker-compose.yaml`, downloads GeoIP files to `~/.cyanly/geoip`, extracts the management script, and records the active install directory in `~/.cyanly_installed`). You can pass the custom config path via `--config` / `-c`:
    ```bash
-   python3 install-cyanly.pyz gen
+   python3 install-cyanly.pyz gen [--config path/to/chiyo_analytics.toml]
    ```
 4. Start the generated Docker Compose stack:
    ```bash
@@ -728,14 +728,14 @@ For production hosting on a single server, Chiyo Analytics provides a fully cont
    ```
    To generate and start in one step, run:
    ```bash
-   python3 install-cyanly.pyz install
+   python3 install-cyanly.pyz install [--config path/to/chiyo_analytics.toml]
    ```
 5. The installer commands honor `--dest <path>` and the active installation pointer in `~/.cyanly_installed`; generated file writes prompt before overwriting existing files unless `-y` or `--yes` is provided. You can use the extracted `cyanly.pyz` script from the installation directory to manage that active deployment:
    - **Start or recreate services from the existing Compose file**: `python3 ~/.cyanly/cyanly.pyz up [service]`
    - **Restart containers**: `python3 ~/.cyanly/cyanly.pyz restart [service]`
    - **Uninstall and remove containers**: `python3 ~/.cyanly/cyanly.pyz uninstall`
    - **Uninstall with volumes (Destructive!)**: `python3 ~/.cyanly/cyanly.pyz uninstall --volume`
-   - Current implementation note: `install-cyanly.pyz gen --dest <path>` writes the installation files to the requested path and updates `~/.cyanly_installed`; `install-cyanly.pyz up --dest <path>` starts Compose there and updates the pointer after success; `install` performs both steps. Use `<path>/cyanly.pyz` for that custom install. The management CLI reads the pointer first, falls back to `~/.cyanly` if the pointer is absent or invalid, and does not regenerate `.env` or `docker-compose.yaml` on `up`.
+   - Current implementation note: `install-cyanly.pyz gen --dest <path>` writes the installation files to the requested path and updates `~/.cyanly_installed`; `install-cyanly.pyz up --dest <path>` starts Compose there and updates the pointer after success; `install` performs both steps. Use `<path>/cyanly.pyz` for that custom install. The management CLI reads the pointer first, falls back to `~/.cyanly` if the pointer is absent or invalid, and does not regenerate `.env` or `docker-compose.yaml` on `up`. You can specify a custom config file path with `--config <path>` (or `-c <path>`) on `config`, `gen`, and `install` commands to avoid the hardcoded `./cyanly-preinstall/chiyo_analytics.toml` path.
    - The installer parses TOML with Python's standard `tomllib` and renders Compose through `ruamel.yaml`, so service removal, port publishing, dependency updates, and volume declarations are applied as structured YAML changes rather than ad hoc template string replacement.
 
 For detailed setup instructions, Nginx/Caddy reverse proxy mapping examples, management commands, zipapp packaging build steps, and container topology, refer to the [Deployment Status & Design Guide](./deployment/PROJECT.md).
